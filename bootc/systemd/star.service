@@ -1,0 +1,15 @@
+[Unit]
+Description=c12s Star node agent
+Documentation=https://github.com/c12s/star
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/var/lib/c12s/node.env
+ExecStart=/usr/local/bin/star
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

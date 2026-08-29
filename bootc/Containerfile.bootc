@@ -1,0 +1,39 @@
+# Containerfile.bootc — c12s edge node OS image
+#
+# Builds a bootc (bootable container) OS image containing the Star agent,
+# a systemd unit for it, and greenboot health checks.
+#
+# Expected build context (tools/bootc/):
+#   star              prebuilt linux/amd64 star binary
+#                     (CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o star github.com/c12s/star/cmd)
+#
+# Build:
+#   podman build -f Containerfile.bootc -t <registry>/<org>/edge-base:v1.0 .
+#
+# The image is pushed to Singularity (Zot) and becomes the node's desired
+# OS image; Supernova (Phase 3) automates this, bootc-image-builder turns it
+# into qcow2/ISO artifacts.
+
+FROM quay.io/fedora/fedora-bootc:40
+
+ARG STAR_BINARY=star
+
+# --- star agent -------------------------------------------------------------
+COPY ${STAR_BINARY} /usr/local/bin/star
+RUN chmod 0755 /usr/local/bin/star
+
+# --- systemd unit -----------------------------------------------------------
+COPY systemd/star.service /usr/lib/systemd/system/star.service
+RUN systemctl enable star.service
+
+# --- greenboot health checks (required.d: failure => rollback) ---------------
+COPY greenboot/01-star-health.sh /etc/greenboot/check/required.d/01-star-health.sh
+COPY greenboot/02-cp-reachability.sh /etc/greenboot/check/required.d/02-cp-reachability.sh
+RUN chmod 0755 /etc/greenboot/check/required.d/*.sh && \
+    chcon -t bin_t /etc/greenboot/check/required.d/*.sh || true
+
+# --- node state dir ----------------------------------------------------------
+# /var/lib/c12s persists across every bootc switch and rollback; on first
+# boot the node creates nodeid there, cloud-init (or the provisioner) may
+# drop node.env for the control plane addresses.
+RUN mkdir -p /var/lib/c12s
