@@ -198,7 +198,7 @@ services:
       - network
 
   etcd:
-    image: "bitnami/etcd:latest"
+    image: "bitnamilegacy/etcd:latest"
     container_name: etcd
     hostname: ${ETCD_HOSTNAME}
     environment:
@@ -210,7 +210,7 @@ services:
       - network
 
   kuiper_etcd:
-    image: "bitnami/etcd:latest"
+    image: "bitnamilegacy/etcd:latest"
     container_name: kuiper_etcd
     hostname: ${KUIPER_ETCD_HOSTNAME}
     environment:
@@ -222,7 +222,7 @@ services:
       - network
 
   quasar_etcd:
-    image: "bitnami/etcd:latest"
+    image: "bitnamilegacy/etcd:latest"
     container_name: quasar_etcd
     hostname: ${QUASAR_ETCD_HOSTNAME}
     environment:
@@ -373,7 +373,7 @@ services:
       - network
 
   pulsar_etcd:
-    image: 'bitnami/etcd:latest'
+    image: 'bitnamilegacy/etcd:latest'
     container_name: pulsar_etcd
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
