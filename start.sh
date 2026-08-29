@@ -9,27 +9,38 @@ else
 fi
 
 # build contol plane's services
-docker compose build  #--no-cache
+docker compose build || { echo "ERROR: control plane build failed"; exit 1; }
 
 # start the control plane
 docker compose up -d
 
 # scylla init
 CONTAINER_NAME="scylla"
+MAX_WAIT_ATTEMPTS=60
+attempt=0
 while true; do
     # Get the health status of the container
-    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_NAME)
+    HEALTH=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_NAME 2>/dev/null)
 
     # Check if the container is healthy
     if [ "$HEALTH" = "healthy" ]; then
         echo "Container is healthy, running additional script"
         docker exec -it scylla /bin/sh -c "cqlsh -f /scylla_schema.cql"
         break  # Exit the loop when the container is healthy
-    else
-        echo "Scylla is not healthy, waiting for 5 seconds before checking again"
-        sleep 5
     fi
+
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$MAX_WAIT_ATTEMPTS" ]; then
+        echo "ERROR: Scylla did not become healthy after $((MAX_WAIT_ATTEMPTS * 5)) seconds, aborting"
+        exit 1
+    fi
+
+    echo "Scylla is not healthy, waiting for 5 seconds before checking again"
+    sleep 5
 done
+
+# remove stale grafana container from a previous run, if any
+docker rm -f grafana >/dev/null 2>&1
 
 # start grafana
 docker run -d --name=grafana \
@@ -89,6 +100,8 @@ do
     --env NATS_PORT=${NATS_PORT} \
     --env NATS_URL=${NATS_HOSTNAME} \
     --env GRPC_PORT=${STAROMETRY_GRPC_PORT} \
+    --env APP_METRICS_CRON_TIMER=${METRICS_CRON_TIMER:-15s} \
+    --env APP_METRICS_EXTERNAL_CRON_TIMER=${METRICS_EXTERNAL_CRON_TIMER:-30s} \
     --mount type=bind,source="$(pwd)"/nodeconfig/star_"$i",target="$NODE_ID_DIR_PATH" \
     --network tools_network \
     --ip 10.5.1.$(($i+2)) \
