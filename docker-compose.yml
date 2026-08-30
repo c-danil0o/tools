@@ -524,6 +524,26 @@ services:
       network:
         ipv4_address: 10.5.0.127
 
+  supernova:
+    build:
+      context: ..
+      dockerfile: supernova/Dockerfile
+    image: supernova
+    container_name: supernova
+    hostname: ${SUPERNOVA_HOSTNAME}
+    restart: on-failure
+    environment:
+      - SUPERNOVA_PORT=${SUPERNOVA_PORT}
+      - SUPERNOVA_ENGINE_REGISTRY=${SUPERNOVA_ENGINE_REGISTRY}
+      - SUPERNOVA_ARTIFACTS_URL=http://${SINGULARITY_FILES_HOSTNAME}:${SINGULARITY_FILES_PORT}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${SUPERNOVA_HOST_PORT}:${SUPERNOVA_PORT}"
+    networks:
+      network:
+        ipv4_address: 10.5.0.128
+
 networks:
   network:
     driver: bridge
