@@ -25,10 +25,18 @@ fi
 HOST="${NATS_TARGET%%:*}"
 PORT="${NATS_TARGET##*:}"
 
-if ! timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT"; then
-    echo "cannot reach NATS at $NATS_TARGET"
-    exit 1
-fi
+# wait for convergence: network (and NATS) may still be coming up when
+# greenboot runs the checks; fail only if the CP stays unreachable
+MAX_WAIT="${GREENBOOT_MAX_WAIT:-120}"
+WAITED=0
+while [ "$WAITED" -lt "$MAX_WAIT" ]; do
+    if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT"; then
+        echo "control plane reachable at $NATS_TARGET (waited ${WAITED}s)"
+        exit 0
+    fi
+    sleep 5
+    WAITED=$((WAITED + 5))
+done
 
-echo "control plane reachable at $NATS_TARGET"
-exit 0
+echo "cannot reach NATS at $NATS_TARGET within ${MAX_WAIT}s"
+exit 1
