@@ -491,6 +491,39 @@ services:
       network:
         ipv4_address: 10.5.0.125
 
+  singularity:
+    image: ghcr.io/project-zot/zot-linux-amd64:v2.1.2
+    container_name: singularity
+    hostname: ${SINGULARITY_HOSTNAME}
+    restart: on-failure
+    volumes:
+      - ../singularity/config/zot-config.json:/etc/zot/config.json:ro
+      - zotregistry:/var/lib/registry
+    ports:
+      - "${SINGULARITY_HOST_PORT}:${SINGULARITY_PORT}"
+    networks:
+      network:
+        ipv4_address: 10.5.0.126
+
+  singularity-files:
+    build:
+      context: ..
+      dockerfile: singularity/Dockerfile
+    image: singularity-files
+    container_name: singularity-files
+    hostname: ${SINGULARITY_FILES_HOSTNAME}
+    restart: on-failure
+    environment:
+      - ARTIFACTS_DIR=/data/artifacts
+      - ARTIFACTS_PORT=${SINGULARITY_FILES_PORT}
+    volumes:
+      - artifacts:/data/artifacts
+    ports:
+      - "${SINGULARITY_FILES_HOST_PORT}:${SINGULARITY_FILES_PORT}"
+    networks:
+      network:
+        ipv4_address: 10.5.0.127
+
 networks:
   network:
     driver: bridge
@@ -519,4 +552,8 @@ volumes:
   meridian_neo4j_logs:
     driver: local
   pulsar_etcd_data:
+    driver: local
+  zotregistry:
+    driver: local
+  artifacts:
     driver: local
