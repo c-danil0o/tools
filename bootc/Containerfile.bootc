@@ -14,13 +14,40 @@
 # OS image; Supernova (Phase 3) automates this, bootc-image-builder turns it
 # into qcow2/ISO artifacts.
 
-FROM quay.io/fedora/fedora-bootc:42
+FROM quay.io/fedora/fedora-bootc:45
 
 # marks this image as a bootc OS image (required by bootc-image-builder
 # and by bootc tooling that discovers OS images in a registry)
 LABEL containers.bootc="1"
 
+# Allow pulling OS images from the lab's HTTP-only Zot registry. Address
+# depends on network mode:
+#   192.168.122.1 = libvirt default NAT gateway (wormhole-created VMs)
+#   10.0.2.2      = QEMU user-net gateway (direct qemu tests)
+RUN mkdir -p /etc/containers/registries.conf.d && \
+    printf '[[registry]]\nlocation = "192.168.122.1:5001"\ninsecure = true\n[[registry]]\nlocation = "10.0.2.2:5001"\ninsecure = true\n' \
+      > /etc/containers/registries.conf.d/local-lab.conf
+
+# cloud-init: the provisioning boundary (D1) injects /var/lib/c12s/node.env
+# and first-boot network config through a NoCloud seed (wormhole libvirt
+# backend, or any external provisioner). The base image does not ship it.
+# greenboot: the health gate — required.d checks run before boot-complete
+# and, on repeated failed boots, the rollback trigger set at
+# ostree-finalize-staged boots the previous deployment (auto-rollback).
+# (greenboot 0.16 on Fedora 45: single package, no greenboot-grub2)
+RUN dnf -y install cloud-init greenboot && dnf clean all
+
+# serial console for headless/lab operation and experiment logging
+RUN mkdir -p /usr/lib/bootc/kargs.d && \
+    printf 'kargs = ["console=ttyS0,115200"]\n' > /usr/lib/bootc/kargs.d/10-console.toml
+
 ARG STAR_BINARY=star
+
+# human-readable OS version marker, stamped per build; used to verify that a
+# bootc switch actually booted the new OS (visible in the VM at
+# /usr/share/os-version and in `cockpit image status` once wired)
+ARG OS_VERSION=v1
+RUN echo "edge-base ${OS_VERSION}" > /usr/share/os-version
 
 # --- star agent -------------------------------------------------------------
 COPY ${STAR_BINARY} /usr/local/bin/star
