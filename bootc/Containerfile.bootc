@@ -14,7 +14,11 @@
 # OS image; Supernova (Phase 3) automates this, bootc-image-builder turns it
 # into qcow2/ISO artifacts.
 
-FROM quay.io/fedora/fedora-bootc:40
+FROM quay.io/fedora/fedora-bootc:42
+
+# marks this image as a bootc OS image (required by bootc-image-builder
+# and by bootc tooling that discovers OS images in a registry)
+LABEL containers.bootc="1"
 
 ARG STAR_BINARY=star
 
