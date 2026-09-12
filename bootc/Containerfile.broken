@@ -1,0 +1,19 @@
+# Containerfile.broken — broken OS image for rollback E2E testing
+#
+# Extends the base edge-base image with an always-failing greenboot health
+# check.  greenboot-healthcheck.service will fail every boot, triggering the
+# greenboot-rs reboot→rollback chain.
+#
+# Build (from tools/bootc/):
+#   docker build -f Containerfile.broken --build-arg BASE=localhost:5001/os/edge-base:v2.0 \
+#     --build-arg OS_VERSION=v2-broken -t localhost:5001/os/edge-base:v2-broken .
+
+ARG BASE=localhost:5001/os/edge-base:v2.0
+FROM ${BASE}
+
+ARG OS_VERSION=v2-broken
+RUN echo "edge-base ${OS_VERSION}" > /usr/share/os-version
+
+COPY greenboot/99-always-fail.sh /etc/greenboot/check/required.d/99-always-fail.sh
+RUN chmod 0755 /etc/greenboot/check/required.d/99-always-fail.sh && \
+    chcon -t bin_t /etc/greenboot/check/required.d/99-always-fail.sh || true
