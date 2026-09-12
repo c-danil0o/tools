@@ -25,7 +25,7 @@ while true; do
     # Check if the container is healthy
     if [ "$HEALTH" = "healthy" ]; then
         echo "Container is healthy, running additional script"
-        docker exec -it scylla /bin/sh -c "cqlsh -f /scylla_schema.cql"
+        docker exec scylla /bin/sh -c "cqlsh -f /scylla_schema.cql" || { echo "ERROR: applying scylla schema failed"; exit 1; }
         break  # Exit the loop when the container is healthy
     fi
 
