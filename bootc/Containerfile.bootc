@@ -35,7 +35,11 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 # and, on repeated failed boots, the rollback trigger set at
 # ostree-finalize-staged boots the previous deployment (auto-rollback).
 # (greenboot 0.16 on Fedora 45: single package, no greenboot-grub2)
-RUN dnf -y install cloud-init greenboot && dnf clean all
+# NOTE: rpm scriptlets do not run `systemctl preset` during image builds, so
+# the units must be enabled explicitly — otherwise health checks never run
+# and no rollback trigger is ever set (observed on the E2 VM).
+RUN dnf -y install cloud-init greenboot && dnf clean all && \
+    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service
 
 # serial console for headless/lab operation and experiment logging
 RUN mkdir -p /usr/lib/bootc/kargs.d && \
