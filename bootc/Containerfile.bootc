@@ -84,4 +84,6 @@ RUN chmod 0755 /etc/greenboot/check/required.d/*.sh && \
 # /var/lib/c12s persists across every bootc switch and rollback; on first
 # boot the node creates nodeid there, cloud-init (or the provisioner) may
 # drop node.env for the control plane addresses.
-RUN mkdir -p /var/lib/c12s
+# /var/lib/star holds VM-reconciler state (qcow2 cache, per-VM disks); it must
+# be traversable by the qemu user (0755) for virt-install to work.
+RUN mkdir -p /var/lib/c12s && install -d -m 0755 /var/lib/star
