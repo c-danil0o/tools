@@ -35,11 +35,24 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 # and, on repeated failed boots, the rollback trigger set at
 # ostree-finalize-staged boots the previous deployment (auto-rollback).
 # (greenboot 0.16 on Fedora 45: single package, no greenboot-grub2)
+# libvirt + virt-install + xorriso: only used by nodes that report the
+# run_vms capability (the VM reconciler creates bootc VMs from qcow2
+# artifacts); installed on every node so the capability is discovered from
+# the environment, never configured (decision D2).
 # NOTE: rpm scriptlets do not run `systemctl preset` during image builds, so
 # the units must be enabled explicitly — otherwise health checks never run
 # and no rollback trigger is ever set (observed on the E2 VM).
-RUN dnf -y install cloud-init greenboot && dnf clean all && \
+RUN dnf -y install cloud-init greenboot xorriso libvirt-daemon-kvm \
+      libvirt-daemon-config-network libvirt-client virt-install qemu-img && \
+    dnf clean all && \
     systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service
+
+# modular libvirt daemons are socket-activated; presets are skipped during
+# image builds, so enable the sockets explicitly
+RUN for unit in virtqemud.socket virtnetworkd.socket virtstoraged.socket \
+      virtnodedevd.socket virtlogd.socket virtproxyd.socket; do \
+      systemctl enable "$unit" 2>/dev/null || true; \
+    done
 
 # serial console for headless/lab operation and experiment logging
 RUN mkdir -p /usr/lib/bootc/kargs.d && \
