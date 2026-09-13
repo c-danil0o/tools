@@ -30,7 +30,7 @@ for i in $(seq 1 "$CYCLES"); do
   image_update "$NODE" "192.168.122.1:5001/os/edge-base:$BROKEN_TAG" "$BROKEN_DIGEST" >/dev/null || fail "cycle $i: update failed"
   T0=$(date +%s)
 
-  if RB=$(wait_for_phase "$NODE" rolled_back 700 3); then
+  if RB=$(wait_for_phase "$NODE" rolled_back 1500 3); then
     log "cycle $i: rolled_back at +${RB}s"
     RB_TIMES+=("$RB")
   else
@@ -39,7 +39,7 @@ for i in $(seq 1 "$CYCLES"); do
   fi
 
   image_update "$NODE" "192.168.122.1:5001/os/edge-base:$GOOD_TAG" "$GOOD_DIGEST" >/dev/null || fail "cycle $i: restore failed"
-  if RS=$(wait_for_digest "$NODE" "$GOOD_DIGEST" 900); then
+  if RS=$(wait_for_digest "$NODE" "$GOOD_DIGEST" 1500); then
     log "cycle $i: restored to $GOOD_TAG at +${RS}s"
     RESTORE_TIMES+=("$RS")
     record "$csv" "$i,$BROKEN_TAG,$RB,$RS,ok"

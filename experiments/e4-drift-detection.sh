@@ -15,7 +15,10 @@ login
 
 NODE="${1:-$VM_NODE_1}"
 NAME="${2:-$VM_NAME_1}"
-DRIFT_TAG="${3:-v3.1}"
+# Default drift tag must be an image NOT in the node's deployment history.
+# Using v3.1/v3.0 risks hitting a previous deployment and confusing the
+# rollback-vs-drift inference. Build a distinct "-alt" variant instead.
+DRIFT_TAG="${3:-${GOOD_TAG}-alt}"
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
 DRIFT_DIGEST=$(zot_digest "$DRIFT_TAG") || fail "image $DRIFT_TAG not in Zot"
 

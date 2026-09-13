@@ -45,7 +45,15 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 RUN dnf -y install cloud-init greenboot xorriso libvirt-daemon-kvm \
       libvirt-daemon-config-network libvirt-client virt-install qemu-img && \
     dnf clean all && \
-    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service
+    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service && \
+    # Remove the legacy GRUB snippet that conflicts with greenboot-rs 0.16.
+    # greenboot-rs manages boot_counter entirely in userspace; the snippet's
+    # own boot_counter decrement + "default=1" forcing can desynchronize from
+    # the Rust implementation and point GRUB at the wrong boot entry after
+    # repeated rollback cycles (see DEV-12, progress.md §5.9 E1 wedge).
+    # GRUB-level kernel-won't-boot safety is preserved by the built-in
+    # fallback=1 variable set by greenboot-set-rollback-trigger.service.
+    rm -f /usr/lib/bootupd/grub2-static/configs.d/08_greenboot.cfg
 
 # modular libvirt daemons are socket-activated; presets are skipped during
 # image builds, so enable the sockets explicitly
