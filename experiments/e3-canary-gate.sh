@@ -17,12 +17,13 @@ CANARY="${1:-$VM_NODE_1}"
 PROD="${2:-$VM_NODE_2}"
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
 
-BROKEN_DIGEST=$(build_image "v3.2-broken-canary" "v3.2-broken-canary" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG")
+BROKEN_TAG="$GOOD_TAG-broken-canary"
+BROKEN_DIGEST=$(build_image "$BROKEN_TAG" "$BROKEN_TAG" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG")
 log "broken canary image digest: $BROKEN_DIGEST"
 
 record e3-canary "role,node,phase,digest,result"
 T0=$(date +%s)
-image_update "$CANARY" "192.168.122.1:5001/os/edge-base:v3.2-broken-canary" "$BROKEN_DIGEST" >/dev/null || fail "canary update failed"
+image_update "$CANARY" "192.168.122.1:5001/os/edge-base:$BROKEN_TAG" "$BROKEN_DIGEST" >/dev/null || fail "canary update failed"
 
 if ELAPSED=$(wait_for_phase "$CANARY" rolled_back 700 3); then
   log "canary rolled back at +${ELAPSED}s (gate: do not proceed)"

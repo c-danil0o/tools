@@ -23,7 +23,7 @@ declare -a RB_TIMES=() RESTORE_TIMES=()
 
 for i in $(seq 1 "$CYCLES"); do
   N=$((i + OFFSET))
-  BROKEN_TAG="v3.2-broken-$N"
+  BROKEN_TAG="$GOOD_TAG-broken-$N"
   BROKEN_DIGEST=$(build_image "$BROKEN_TAG" "$BROKEN_TAG" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG")
   log "cycle $i/$CYCLES: offering $BROKEN_TAG ($BROKEN_DIGEST)"
 

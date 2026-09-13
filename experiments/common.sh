@@ -223,8 +223,8 @@ build_image() {
 
 ensure_good_image() { build_image "$GOOD_TAG" "$GOOD_VERSION"; }
 
-broken_image() { # <n> -> prints digest; builds v3.2-broken-<n>
-  build_image "v3.2-broken-$1" "v3.2-broken-$1" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG"
+broken_image() { # <n> -> prints digest; builds <GOOD_TAG>-broken-<n>
+  build_image "$GOOD_TAG-broken-$1" "$GOOD_TAG-broken-$1" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG"
 }
 
 # --- fleet ------------------------------------------------------------------
