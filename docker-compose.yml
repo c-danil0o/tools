@@ -97,8 +97,8 @@ services:
 
   agent_queue:
     build:
-      context: ../gravity
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: gravity/Dockerfile
       args:
         - GRPC_PORT=${AGENT_QUEUE_PORT}
     image: agent_queue
@@ -111,8 +111,10 @@ services:
       GRPC_PORT: ${AGENT_QUEUE_PORT}
       NATS_CONN_ADDRESS: ${NATS_HOSTNAME}:${NATS_PORT}
       SECRET_KEY: ${SECRET_KEY}
+      MAGNETAR_ADDRESS: ${MAGNETAR_HOSTNAME}:${MAGNETAR_PORT}
     depends_on:
       - nats
+      - magnetar
 
   apollo:
     build:
