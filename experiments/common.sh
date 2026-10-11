@@ -28,8 +28,8 @@ ZOT="${ZOT:-localhost:5001}"
 SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
 HOST_VM_IP="${HOST_VM_IP:-192.168.122.51}"
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
-FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.9.qcow2}"
-GOOD_TAG="${GOOD_TAG:-v3.9}"
+FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.10.qcow2}"
+GOOD_TAG="${GOOD_TAG:-v3.10}"
 GOOD_VERSION="${GOOD_VERSION:-$GOOD_TAG}"
 
 HOST_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes c12s@$HOST_VM_IP"
@@ -303,6 +303,8 @@ fleet_ready() { # <n>: wait until every fleet node is healthy, then create polic
     elapsed=$(wait_for_phase "$id" healthy 600 3) || fail "node $id not healthy after ${elapsed}s"
     ensure_os_update_policy "$id"
   done
+  # the libvirt host is a bootc node too; its id changes when it re-registers
+  ensure_os_update_policy "$HOST_ID"
   login  # permissions are baked into the JWT at login time
   log "fleet ready (policies created, re-logged in)"
 }
