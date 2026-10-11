@@ -95,3 +95,9 @@ RUN chmod 0755 /etc/greenboot/check/required.d/*.sh && \
 # /var/lib/star holds VM-reconciler state (qcow2 cache, per-VM disks); it must
 # be traversable by the qemu user (0755) for virt-install to work.
 RUN mkdir -p /var/lib/c12s && install -d -m 0755 /var/lib/star
+
+# --- persistent journal -------------------------------------------------------
+# Default Storage=auto stays volatile without /var/log/journal, so star's log
+# from before a reboot or rollback is lost exactly when it is needed.
+RUN mkdir -p /usr/lib/systemd/journald.conf.d && \
+    printf '[Journal]\nStorage=persistent\n' > /usr/lib/systemd/journald.conf.d/10-c12s-persistent.conf
