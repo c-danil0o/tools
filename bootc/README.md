@@ -13,7 +13,7 @@ It does **not** hold node-local state — see `/var/lib/c12s/` semantics in
 | `Containerfile.broken` | — | good image + `99-always-fail.sh` (rollback/canary tests) |
 | `systemd/star.service` | `/usr/lib/systemd/system/` | runs Star at boot, `Restart=always` |
 | `greenboot/01-star-health.sh` | `/etc/greenboot/check/required.d/` | boot gate: star service active (waits ≤60 s) |
-| `greenboot/02-cp-reachability.sh` | `/etc/greenboot/check/required.d/` | boot gate: NATS reachable per `node.env` (waits ≤60 s) |
+| `greenboot/02-cp-reachability.sh` | `/etc/greenboot/check/required.d/` | boot gate on **update boots only** (star's attempt is `applied` on an earlier boot and the attempted image is booted): NATS reachable per `node.env` within 60 s, else rollback; on other boots an unreachable CP only logs a warning (review R14) |
 | `greenboot/99-always-fail.sh` | (broken image only) | always fails |
 
 The image also trusts the lab registry `192.168.122.1:5001` (insecure),
