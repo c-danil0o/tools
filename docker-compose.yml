@@ -543,7 +543,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/tmp/supernova:/var/tmp/supernova
     ports:
-      - "${SUPERNOVA_HOST_PORT}:${SUPERNOVA_PORT}"
+      # privileged builds via the host docker socket: never expose beyond localhost
+      - "127.0.0.1:${SUPERNOVA_HOST_PORT}:${SUPERNOVA_PORT}"
     networks:
       network:
         ipv4_address: 10.5.0.128
