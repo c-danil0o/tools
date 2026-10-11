@@ -27,14 +27,19 @@ ETCD_CONTAINER="${ETCD_CONTAINER:-etcd}"
 ZOT="${ZOT:-localhost:5001}"
 SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
 HOST_VM_IP="${HOST_VM_IP:-192.168.122.51}"
-HOST_ID="${HOST_ID:-0fba4c5f-7f66-4df3-ba22-1b5d27f44051}"
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
-FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.0.qcow2}"
-GOOD_TAG="${GOOD_TAG:-v3.2}"
-GOOD_VERSION="${GOOD_VERSION:-v3.2}"
+FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.9.qcow2}"
+GOOD_TAG="${GOOD_TAG:-v3.9}"
+GOOD_VERSION="${GOOD_VERSION:-$GOOD_TAG}"
 
-HOST_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null c12s@$HOST_VM_IP"
+HOST_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes c12s@$HOST_VM_IP"
 mkdir -p "$TMP_DIR" "$RESULTS_DIR"
+
+# The libvirt host's node id changes whenever it re-enrolls, so read it from
+# the host itself instead of hardcoding it.
+if [ -z "${HOST_ID:-}" ]; then
+  HOST_ID=$($HOST_SSH 'cat /var/lib/c12s/nodeid' 2>/dev/null) || HOST_ID=""
+fi
 
 log()  { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
 fail() { printf '[%s] ERROR: %s\n' "$(date +%H:%M:%S)" "$*" >&2; exit 1; }
@@ -223,6 +228,10 @@ build_image() {
 
 ensure_good_image() { build_image "$GOOD_TAG" "$GOOD_VERSION"; }
 
+# <GOOD_TAG>-alt: same build as the good image with a different version
+# stamp, so it is a distinct digest that was never deployed (E4 drift, E5)
+alt_image() { build_image "$GOOD_TAG-alt" "$GOOD_TAG-alt"; }
+
 broken_image() { # <n> -> prints digest; builds <GOOD_TAG>-broken-<n>
   build_image "$GOOD_TAG-broken-$1" "$GOOD_TAG-broken-$1" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG"
 }
@@ -247,8 +256,19 @@ EOF
   cockpit_retry create policies --path "$file" >/dev/null 2>&1 || log "policy for $id may already exist"
 }
 
+# fleet_claim: move every node in the pool into the experiment org (the
+# libvirt host and its VMs enroll unclaimed; a clean lab has no other nodes)
+fleet_claim() {
+  if [ -z "$(docker exec "$ETCD_CONTAINER" etcdctl get nodes/pool --prefix --keys-only 2>/dev/null | grep -v '^$')" ]; then
+    return 0
+  fi
+  cockpit_retry claim nodes --org "$C12S_ORG" --query 'cpu-cores > 0' >/dev/null || fail "claiming pool nodes failed"
+  log "claimed pool nodes into $C12S_ORG"
+}
+
 fleet_set() { # <vm-count>
   local n=${1:-2} digest spec vms="" i
+  [ -n "$HOST_ID" ] || fail "HOST_ID unknown: libvirt host $HOST_VM_IP unreachable or not enrolled (set HOST_ID to override)"
   digest=$(curl -sf "$SINGULARITY_FILES/artifacts/$FLEET_QCOW2/sha256") || fail "fleet qcow2 $FLEET_QCOW2 not on the artifact server"
   for i in $(seq 1 "$n"); do
     vms+="{\"name\":\"vm-0$i\",\"qcow2Url\":\"http://192.168.122.1:8081/artifacts/$FLEET_QCOW2\",\"digest\":\"$digest\",\"vcpus\":1,\"memoryMb\":1024},"
@@ -285,6 +305,19 @@ fleet_ready() { # <n>: wait until every fleet node is healthy, then create polic
   done
   login  # permissions are baked into the JWT at login time
   log "fleet ready (policies created, re-logged in)"
+}
+
+# fleet_pin <n> <digest>: declare the good image as every node's desired OS.
+# Fresh VMs have no desired image, so without this a drifted node would still
+# count as healthy. A no-op switch when the node already booted it.
+fleet_pin() {
+  local n=${1:-2} digest=$2 i id
+  for i in $(seq 1 "$n"); do
+    id=$(eval echo \$VM_NODE_$i)
+    image_update "$id" "192.168.122.1:5001/os/edge-base:$GOOD_TAG" "$digest" >/dev/null || fail "pinning $id to $GOOD_TAG failed"
+    wait_for_digest "$id" "$digest" 600 >/dev/null || fail "node $id not healthy on $GOOD_TAG"
+  done
+  log "fleet pinned to $GOOD_TAG"
 }
 
 fleet_save() { # <n>

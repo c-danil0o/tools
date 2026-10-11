@@ -20,7 +20,8 @@ NAME="${2:-$VM_NAME_1}"
 # rollback-vs-drift inference. Build a distinct "-alt" variant instead.
 DRIFT_TAG="${3:-${GOOD_TAG}-alt}"
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
-DRIFT_DIGEST=$(zot_digest "$DRIFT_TAG") || fail "image $DRIFT_TAG not in Zot"
+if [ "$DRIFT_TAG" = "$GOOD_TAG-alt" ]; then DRIFT_DIGEST=$(alt_image); else DRIFT_DIGEST=$(zot_digest "$DRIFT_TAG"); fi
+[ -n "$DRIFT_DIGEST" ] || fail "image $DRIFT_TAG not in Zot"
 
 CURRENT=$(node_booted_digest "$NODE")
 [ "$CURRENT" = "$GOOD_DIGEST" ] || fail "precondition: node $NODE must be healthy on $GOOD_TAG (is $CURRENT)"

@@ -14,8 +14,9 @@ login
 
 NODE="${1:-$VM_NODE_1}"
 NAME="${2:-$VM_NAME_1}"
-TARGET_TAG="${3:-v3.1}"
-TARGET_DIGEST=$(zot_digest "$TARGET_TAG") || fail "image $TARGET_TAG not in Zot"
+TARGET_TAG="${3:-${GOOD_TAG}-alt}"
+if [ "$TARGET_TAG" = "$GOOD_TAG-alt" ]; then TARGET_DIGEST=$(alt_image); else TARGET_DIGEST=$(zot_digest "$TARGET_TAG"); fi
+[ -n "$TARGET_DIGEST" ] || fail "image $TARGET_TAG not in Zot"
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
 
 record e5-airgapped "node,target,egress,accepted_s,healthy_s,transitions"
