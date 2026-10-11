@@ -1,25 +1,63 @@
 #!/bin/bash
-# greenboot required check: the node must reach the control plane transport.
-# Reads NATS_ADDRESS from /var/lib/c12s/node.env (persistent across updates).
-# NOTE: an edge node that lost uplink for a long time will fail this check and
-# roll back its boot; that is intentional for the thesis experiments
-# (health gate must be testable end-to-end). Remove this file for deployments
-# that must survive network partitions without rolling back.
+# greenboot required check: an updated image must keep the node manageable.
+# An image that breaks the path to the control plane (network config, NATS
+# address, firewall) would otherwise pass the health gate and leave the node
+# unreachable for every later fix, so on an update boot the check fails and
+# greenboot rolls back.
+#
+# Only update boots are gated. On any other boot (power loss, plain reboot)
+# the CP being down says nothing about the image: failing there made greenboot
+# reboot healthy nodes until its counter ran out and left grubenv dirty for
+# the next update (plan/review.md R14). Those boots only log a warning.
+#
+# Update boot = star recorded an "applied" attempt on an earlier boot and the
+# booted image is the attempted one (os_attempt.json, see star internal/bootc).
+# Trade-off: a CP outage exactly during an update boot rolls back a good image
+# (safe direction: the node stays on its known-good image, star parks the
+# digest, the operator re-declares it).
 set -o pipefail
 
-ENV_FILE="/var/lib/c12s/node.env"
+STATE_DIR="/var/lib/c12s"
+ENV_FILE="$STATE_DIR/node.env"
+ATTEMPT_FILE="$STATE_DIR/os_attempt.json"
+
+json_field() { # <file> <field>
+    grep -o "\"$2\":\"[^\"]*\"" "$1" 2>/dev/null | head -1 | cut -d'"' -f4
+}
+
+update_boot() {
+    [ -f "$ATTEMPT_FILE" ] || return 1
+    [ "$(json_field "$ATTEMPT_FILE" result)" = "applied" ] || return 1
+    local attempt_boot current_boot attempt_digest booted_digest
+    attempt_boot=$(json_field "$ATTEMPT_FILE" bootId)
+    current_boot=$(cat /proc/sys/kernel/random/boot_id)
+    [ -n "$attempt_boot" ] && [ "$attempt_boot" != "$current_boot" ] || return 1
+    attempt_digest=$(json_field "$ATTEMPT_FILE" digest)
+    booted_digest=$(bootc status --format=humanreadable 2>/dev/null \
+        | grep 'Booted image' | grep -o 'sha256:[0-9a-f]\{64\}' | head -1)
+    [ -n "$attempt_digest" ] && [ "$attempt_digest" = "$booted_digest" ]
+}
+
+if update_boot; then
+    GATED=1
+else
+    GATED=0
+fi
+
 if [ ! -f "$ENV_FILE" ]; then
     echo "node env file $ENV_FILE missing"
-    exit 1
+    [ "$GATED" = 1 ] && exit 1
+    exit 0
 fi
 
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
 NATS_TARGET="${NATS_ADDRESS:-$NATS_HOSTNAME:$NATS_PORT}"
-if [ -z "$NATS_TARGET" ]; then
+if [ -z "$NATS_TARGET" ] || [ "$NATS_TARGET" = ":" ]; then
     echo "NATS address not configured in $ENV_FILE"
-    exit 1
+    [ "$GATED" = 1 ] && exit 1
+    exit 0
 fi
 
 HOST="${NATS_TARGET%%:*}"
@@ -38,5 +76,9 @@ while [ "$WAITED" -lt "$MAX_WAIT" ]; do
     WAITED=$((WAITED + 5))
 done
 
-echo "cannot reach NATS at $NATS_TARGET within ${MAX_WAIT}s"
-exit 1
+if [ "$GATED" = 1 ]; then
+    echo "update boot: cannot reach NATS at $NATS_TARGET within ${MAX_WAIT}s"
+    exit 1
+fi
+echo "WARNING: cannot reach NATS at $NATS_TARGET within ${MAX_WAIT}s; not an update boot, not failing it"
+exit 0
