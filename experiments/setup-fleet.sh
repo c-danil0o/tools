@@ -23,5 +23,6 @@ fleet_ready "$N"
 fleet_pin "$N" "$GOOD_DIGEST"
 fleet_save "$N"
 echo "GOOD_DIGEST=$GOOD_DIGEST" >> "$RESULTS_DIR/fleet.env"
+echo "FLEET_GOOD_TAG=$GOOD_TAG" >> "$RESULTS_DIR/fleet.env"
 
 log "fleet up: $N node(s) healthy on $GOOD_TAG; results in $RESULTS_DIR"

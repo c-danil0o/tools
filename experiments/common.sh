@@ -29,7 +29,7 @@ SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
 HOST_VM_IP="${HOST_VM_IP:-192.168.122.51}"
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
 FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.11.qcow2}"
-GOOD_TAG="${GOOD_TAG:-v3.11}"
+GOOD_TAG="${GOOD_TAG:-v3.17}"
 GOOD_VERSION="${GOOD_VERSION:-$GOOD_TAG}"
 
 HOST_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes c12s@$HOST_VM_IP"
@@ -85,11 +85,10 @@ image_update() { # <nodeid> <image-ref> <digest>
       echo "$out"
       return 0
     fi
+    # an unacknowledged update still succeeds: the desired image is recorded
+    # in Magnetar and the node pulls it when it is back
     if echo "$out" | grep -qi 'rate limit'; then
       sleep 15
-    elif echo "$out" | grep -qi 'did NOT acknowledge'; then
-      # node is mid-reboot or briefly offline; retry
-      sleep 20
     else
       echo "$out" >&2
       return 1
@@ -121,6 +120,16 @@ node_phase() {
 
 node_booted_digest() {
   node_decode "$1" | awk '/bootedDigest:/{gsub(/"/,"",$2); print $2; exit}'
+}
+
+node_desired_digest() { # declared in Magnetar (DEV-14); empty = none
+  docker exec "$ETCD_CONTAINER" etcdctl get "desired_os/$1" --print-value-only 2>/dev/null \
+    | grep -o '"Digest":"[^"]*"' | cut -d'"' -f4
+}
+
+vm_booted_digest() { # <vm-name> -> digest bootc reports on the node itself
+  vm_run "$1" 'sudo bootc status --format=humanreadable | grep "Booted image"' 2>/dev/null \
+    | grep -o 'sha256:[0-9a-f]\{64\}' | head -1
 }
 
 node_booted_image() {
@@ -337,6 +346,9 @@ fleet_load() {
   [ -f "$RESULTS_DIR/fleet.env" ] || fail "no $RESULTS_DIR/fleet.env — run setup-fleet.sh first"
   # shellcheck disable=SC1091
   source "$RESULTS_DIR/fleet.env"
+  # the pinned digest belongs to the tag the fleet was set up with; a run
+  # with another GOOD_TAG must not restore nodes to it
+  [ "${FLEET_GOOD_TAG:-}" = "$GOOD_TAG" ] || unset GOOD_DIGEST
   VM_COUNT=$(grep -c '^VM_NODE_' "$RESULTS_DIR/fleet.env")
   [ "$VM_COUNT" -gt 0 ] || fail "fleet.env has no nodes"
 }
