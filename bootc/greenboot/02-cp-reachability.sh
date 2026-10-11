@@ -27,7 +27,7 @@ PORT="${NATS_TARGET##*:}"
 
 # wait for convergence: network (and NATS) may still be coming up when
 # greenboot runs the checks; fail only if the CP stays unreachable
-MAX_WAIT="${GREENBOOT_MAX_WAIT:-120}"
+MAX_WAIT="${GREENBOOT_MAX_WAIT:-60}"
 WAITED=0
 while [ "$WAITED" -lt "$MAX_WAIT" ]; do
     if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT"; then

@@ -45,15 +45,12 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 RUN dnf -y install cloud-init greenboot xorriso libvirt-daemon-kvm \
       libvirt-daemon-config-network libvirt-client virt-install qemu-img && \
     dnf clean all && \
-    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service && \
-    # Remove the legacy GRUB snippet that conflicts with greenboot-rs 0.16.
-    # greenboot-rs manages boot_counter entirely in userspace; the snippet's
-    # own boot_counter decrement + "default=1" forcing can desynchronize from
-    # the Rust implementation and point GRUB at the wrong boot entry after
-    # repeated rollback cycles (see DEV-12, progress.md §5.9 E1 wedge).
-    # GRUB-level kernel-won't-boot safety is preserved by the built-in
-    # fallback=1 variable set by greenboot-set-rollback-trigger.service.
-    rm -f /usr/lib/bootupd/grub2-static/configs.d/08_greenboot.cfg
+    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service
+# Keep greenboot's 08_greenboot.cfg GRUB snippet: it is the rollback
+# mechanism (counts boot_counter down, boots default=1 at 0) and resets
+# boot_success=0 every boot. bootc-image-builder installs it into /boot when
+# the disk is created; image updates never touch /boot. Removing it (DEV-12)
+# left disks built afterwards looping forever on a failing deployment.
 
 # modular libvirt daemons are socket-activated; presets are skipped during
 # image builds, so enable the sockets explicitly
@@ -87,6 +84,10 @@ COPY greenboot/01-star-health.sh /etc/greenboot/check/required.d/01-star-health.
 COPY greenboot/02-cp-reachability.sh /etc/greenboot/check/required.d/02-cp-reachability.sh
 RUN chmod 0755 /etc/greenboot/check/required.d/*.sh && \
     chcon -t bin_t /etc/greenboot/check/required.d/*.sh || true
+# Two boot attempts: one retry for a transient failure, then roll back.
+# Every attempt is a full reboot, which is slow on nested VMs.
+RUN sed -i 's/^GREENBOOT_MAX_BOOT_ATTEMPTS=.*/GREENBOOT_MAX_BOOT_ATTEMPTS=2/' /etc/greenboot/greenboot.conf && \
+    grep -q '^GREENBOOT_MAX_BOOT_ATTEMPTS=2$' /etc/greenboot/greenboot.conf
 
 # --- node state dir ----------------------------------------------------------
 # /var/lib/c12s persists across every bootc switch and rollback; on first

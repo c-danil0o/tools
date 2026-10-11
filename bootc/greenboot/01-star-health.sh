@@ -10,7 +10,7 @@
 # a bounded window and only fail when the window expires.
 set -o pipefail
 
-MAX_WAIT="${GREENBOOT_MAX_WAIT:-120}"
+MAX_WAIT="${GREENBOOT_MAX_WAIT:-60}"
 WAITED=0
 while [ "$WAITED" -lt "$MAX_WAIT" ]; do
     if systemctl is-active --quiet star.service; then
