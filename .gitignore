@@ -18,3 +18,7 @@ nodeconfig
 
 heliosphere/
 bootc/star
+
+# Local vault keys: created/rewritten by apollo at vault init (also on a bare
+# clone, start.sh seeds an empty file before compose). Never commit.
+vault/api_key.json
