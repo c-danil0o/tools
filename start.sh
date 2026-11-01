@@ -17,6 +17,11 @@
 #               in the node pool next to them)
 #   C12S_USER / C12S_PASS / C12S_ORG   test user (default e2e / testpass123 / c12s)
 #   QCOW2_DIR   where provisioning disks live (default ~/.wormhole/images)
+#   C12S_NO_BUILD  1 = skip image builds (same as --no-build); --build overrides
+#
+# Usage: ./start.sh [--no-build|--build]
+#   --no-build  reuse the already-built images (fast path after a reboot)
+#   --build     force a rebuild even when C12S_NO_BUILD=1
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -36,6 +41,31 @@ ARTIFACTS="http://localhost:${SINGULARITY_FILES_HOST_PORT:-8081}"
 
 log()  { printf '[start] %s\n' "$*"; }
 fail() { printf '[start] ERROR: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+    cat <<'EOF'
+Usage: ./start.sh [--no-build|--build]
+
+  --no-build  reuse the already-built images (fast path after a reboot)
+  --build     force a rebuild even when C12S_NO_BUILD=1
+
+C12S_NO_BUILD=1 has the same effect as --no-build.
+EOF
+}
+
+NO_BUILD=0
+case "${C12S_NO_BUILD:-0}" in
+    1|true|yes) NO_BUILD=1 ;;
+esac
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --no-build) NO_BUILD=1 ;;
+        --build)    NO_BUILD=0 ;;
+        -h|--help)  usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
+    shift
+done
 
 # wait_for <description> <attempts> <sleep-seconds> <command...>
 wait_for() {
@@ -60,8 +90,12 @@ if [ ! -f vault/api_key.json ]; then
 fi
 
 # --- control plane ------------------------------------------------------------
-log "building control plane images"
-docker compose build || fail "control plane build failed"
+if [ "$NO_BUILD" = 1 ]; then
+    log "skipping image build (--no-build / C12S_NO_BUILD=1)"
+else
+    log "building control plane images"
+    docker compose build || fail "control plane build failed"
+fi
 log "starting control plane"
 docker compose up -d --remove-orphans || fail "docker compose up failed"
 
@@ -138,6 +172,7 @@ fi
 # --- grafana ------------------------------------------------------------------
 docker rm -f grafana >/dev/null 2>&1 || true
 docker run -d --name=grafana \
+    --restart unless-stopped \
     -p 3000:3000 \
     --network tools_network \
     -v ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml \
@@ -147,8 +182,13 @@ docker run -d --name=grafana \
 
 # --- dockerized nodes (optional) ----------------------------------------------
 if [ "$NODES_NUM" -gt 0 ]; then
-    docker build -f ../star/Dockerfile .. -t star
-    docker build -f ../starometry/Dockerfile .. -t starometry
+    if [ "$NO_BUILD" = 1 ]; then
+        docker image inspect star >/dev/null 2>&1 || fail "star image missing; run without --no-build"
+        docker image inspect starometry >/dev/null 2>&1 || fail "starometry image missing; run without --no-build"
+    else
+        docker build -f ../star/Dockerfile .. -t star
+        docker build -f ../starometry/Dockerfile .. -t starometry
+    fi
     for ((i = 1; i <= NODES_NUM; i++)); do
         # node ids persist in nodeconfig/ (removed by stop.sh --clean)
         mkdir -p "$(pwd)/nodeconfig/star_$i"

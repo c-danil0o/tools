@@ -6,7 +6,7 @@ services:
     image: magnetar
     container_name: magnetar
     hostname: ${MAGNETAR_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - NATS_ADDRESS=${NATS_HOSTNAME}:${NATS_PORT}
       - ETCD_ADDRESS=${ETCD_HOSTNAME}:${ETCD_PORT}
@@ -29,6 +29,7 @@ services:
       dockerfile: oort/Dockerfile
     image: oort
     container_name: oort
+    restart: unless-stopped
     hostname: ${OORT_HOSTNAME}
     environment:
       - OORT_PORT=${OORT_PORT}
@@ -50,6 +51,7 @@ services:
       dockerfile: kuiper/Dockerfile
     image: kuiper
     container_name: kuiper
+    restart: unless-stopped
     hostname: ${KUIPER_HOSTNAME}
     expose:
       - ${KUIPER_PORT}
@@ -81,6 +83,7 @@ services:
       dockerfile: quasar/Dockerfile
     image: quasar
     container_name: quasar
+    restart: unless-stopped
     hostname: ${QUASAR_HOSTNAME}
     environment:
       - SERVER_PORT=${QUASAR_PORT}
@@ -103,7 +106,7 @@ services:
         - GRPC_PORT=${AGENT_QUEUE_PORT}
     image: agent_queue
     container_name: agent_queue
-    restart: always
+    restart: unless-stopped
     networks:
       network:
         ipv4_address: 10.5.0.105
@@ -123,7 +126,7 @@ services:
     image: apollo
     container_name: apollo
     hostname: ${IAM_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - ./vault/api_key.json:/etc/apollo/api_key.json
     environment:
@@ -156,7 +159,7 @@ services:
       dockerfile: tools/vault/Dockerfile
     container_name: vault
     hostname: ${VAULT_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - VAULT_ADDR=${VAULT_ADDR}:${VAULT_HTTP_PORT}
       - VAULT_API_ADDR=${VAULT_ADDR}:${VAULT_HTTP_PORT}
@@ -178,7 +181,7 @@ services:
     image: neo4j:4.4.12
     container_name: neo4j
     hostname: ${NEO4J_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - NEO4J_apoc_export_file_enabled=${NEO4J_apoc_export_file_enabled}
       - NEO4J_apoc_import_file_enabled=${NEO4J_apoc_import_file_enabled}
@@ -203,7 +206,7 @@ services:
     volumes:
       - ./nats.conf:/etc/nats/nats-server.conf
     hostname: ${NATS_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     networks:
       network:
         ipv4_address: 10.5.0.109
@@ -213,7 +216,7 @@ services:
       context: ..
       dockerfile: tools/scylla/Dockerfile
     container_name: scylla
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - scylla_data:/var/lib/scylla
     expose:
@@ -232,6 +235,7 @@ services:
   etcd:
     image: "bitnamilegacy/etcd:latest"
     container_name: etcd
+    restart: unless-stopped
     hostname: ${ETCD_HOSTNAME}
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
@@ -245,6 +249,7 @@ services:
   kuiper_etcd:
     image: "bitnamilegacy/etcd:latest"
     container_name: kuiper_etcd
+    restart: unless-stopped
     hostname: ${KUIPER_ETCD_HOSTNAME}
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
@@ -258,6 +263,7 @@ services:
   quasar_etcd:
     image: "bitnamilegacy/etcd:latest"
     container_name: quasar_etcd
+    restart: unless-stopped
     hostname: ${QUASAR_ETCD_HOSTNAME}
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
@@ -276,7 +282,7 @@ services:
     build:
       context: ..
       dockerfile: ./lunar-gateway/Dockerfile
-    restart: on-failure
+    restart: unless-stopped
     env_file:
       - ./../lunar-gateway/.env
     ports:
@@ -294,6 +300,7 @@ services:
 
   consul:
     image: hashicorp/consul:latest
+    restart: unless-stopped
     hostname: consul
     ports:
       - "8500:8500"
@@ -315,7 +322,7 @@ services:
     build:
       context: ..
       dockerfile: ./heliosphere/rate-limiter-service/Dockerfile
-    restart: always
+    restart: unless-stopped
     depends_on:
       - consul
     environment:
@@ -332,7 +339,7 @@ services:
     image: meridian
     container_name: meridian
     hostname: meridian
-    restart: "no"
+    restart: unless-stopped
     ports:
       - ${MERIDIAN_LISTEN_PORT}:${MERIDIAN_LISTEN_PORT}
     environment:
@@ -356,7 +363,7 @@ services:
   meridian_neo4j:
     image: neo4j:4.4.12
     container_name: meridian_neo4j
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - NEO4J_dbms_connector_bolt_listen__address=:${MERIDIAN_NEO4J_BOLT_PORT}
       - NEO4J_dbms_connector_http_listen__address=:${MERIDIAN_NEO4J_HTTP_PORT}
@@ -380,7 +387,7 @@ services:
     image: pulsar
     container_name: pulsar
     hostname: pulsar
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - ETCD_ADDRESS=${PULSAR_ETCD_ADDRESS}
       - LISTEN_ADDRESS=${PULSAR_LISTEN_ADDRESS}
@@ -394,6 +401,7 @@ services:
   pulsar_etcd:
     image: 'bitnamilegacy/etcd:latest'
     container_name: pulsar_etcd
+    restart: unless-stopped
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://${PULSAR_ETCD_ADDRESS}
@@ -410,7 +418,7 @@ services:
     image: health-check
     container_name: health-check
     hostname: health-check
-    restart: on-failure
+    restart: unless-stopped
     ports:
       - 8013:8080
     environment:
@@ -431,7 +439,7 @@ services:
     image: node-metrics
     container_name: node-metrics
     hostname: node-metrics
-    restart: on-failure
+    restart: unless-stopped
     ports:
       - 8086:8080
     environment:
@@ -447,6 +455,7 @@ services:
 
   prometheus_healthcheck:
     image: prom/prometheus:latest
+    restart: unless-stopped
     volumes:
       - ./prometheus_healthcheck/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
@@ -475,6 +484,7 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.1
+    restart: unless-stopped
     # network_mode: host
     # pid: host
     privileged: true
@@ -497,7 +507,7 @@ services:
     image: ghcr.io/project-zot/zot-linux-amd64:v2.1.2
     container_name: singularity
     hostname: ${SINGULARITY_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - ../singularity/config/zot-config.json:/etc/zot/config.json:ro
       - zotregistry:/var/lib/registry
@@ -514,7 +524,7 @@ services:
     image: singularity-files
     container_name: singularity-files
     hostname: ${SINGULARITY_FILES_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - ARTIFACTS_DIR=/data/artifacts
       - ARTIFACTS_PORT=${SINGULARITY_FILES_PORT}
@@ -533,7 +543,7 @@ services:
     image: supernova
     container_name: supernova
     hostname: ${SUPERNOVA_HOSTNAME}
-    restart: on-failure
+    restart: unless-stopped
     environment:
       - SUPERNOVA_PORT=${SUPERNOVA_PORT}
       - SUPERNOVA_ENGINE_REGISTRY=${SUPERNOVA_ENGINE_REGISTRY}
