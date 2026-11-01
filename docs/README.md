@@ -496,6 +496,52 @@ The endpoint for allocating nodes. The available nodes matched by the query sele
 
  - Invalid query format
 
+### DELETE /apis/core/v1/nodes
+
+The endpoint for deleting a node record. It removes the record, its label
+index, its liveness state and its desired OS image. Org-owned nodes are never
+removed automatically by the control plane (the GC only reaps stale *pool*
+records), so this is the explicit path for them. Deleting a host does not
+stop the VMs it declared — they keep running and keep their own records.
+
+Node listings additionally expose the read-time liveness view:
+`lastSeen` (unix seconds of the last heartbeat; `0` = never) and `liveness`
+(`online` | `stale` | `offline` | `unknown`, thresholds from Magnetar's
+`NODE_STALE_AFTER` / `NODE_OFFLINE_AFTER`).
+
+#### Request headers
+
+ - **Authorization**: Bearer token received upon login (header `Authorization: Bearer <token>`)
+
+#### Request body
+
+```json
+{
+	"nodeId": "05ede011-701e-4e9c-b500-f3b6a98a7564"
+}
+```
+|property| type  |  description |
+|-----|-----|----|
+| `nodeId` | string  | The unique identifier of the node to delete. |
+
+#### Response - 200 OK
+
+```json
+{}
+```
+
+#### Response - 401 Unauthorized
+
+ - Invalid authentication token
+
+#### Response - 403 Forbidden
+
+ - The caller lacks the `node.delete` permission on the node
+
+#### Response - 404 Not Found
+
+ - No node with that id
+
 ### POST /apis/core/v1/labels/float64
 
 The endpoint for upserting a label for the specified node. The label has a float64 value. The node must be owned by the specified organization.

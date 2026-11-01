@@ -16,6 +16,12 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - MERIDIAN_ADDRESS=${MERIDIAN_ADDRESS}
       - GRAVITY_ADDRESS=${GRAVITY_ADDRESS}
+      # node liveness view + stale-record GC (defaults match magnetar's)
+      - NODE_STALE_AFTER=${NODE_STALE_AFTER:-90s}
+      - NODE_OFFLINE_AFTER=${NODE_OFFLINE_AFTER:-5m}
+      - NODE_GC_ENABLED=${NODE_GC_ENABLED:-true}
+      - NODE_GC_INTERVAL=${NODE_GC_INTERVAL:-10m}
+      - NODE_GC_POOL_AFTER=${NODE_GC_POOL_AFTER:-24h}
     networks:
       network:
         ipv4_address: 10.5.0.101

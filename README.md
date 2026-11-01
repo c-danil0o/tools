@@ -140,10 +140,19 @@ matter most day-to-day:
 | `NATS_ADDRESS` | `nats:4222` | broker address given to in-network services |
 | `SECRET_KEY` | `secret-key` | shared JWT signing key (lab value) |
 | `BIND_PORT` | `7946` | Serf/gossip port baked into images and docker nodes |
+| `NODE_STALE_AFTER` / `NODE_OFFLINE_AFTER` | `90s` / `5m` | node liveness thresholds (Magnetar derives `online`/`stale`/`offline` from the last heartbeat) |
+| `NODE_GC_ENABLED` | `true` | Magnetar's stale-record GC |
+| `NODE_GC_INTERVAL` / `NODE_GC_POOL_AFTER` | `10m` / `24h` | GC cadence; unclaimed (pool) records without a heartbeat for this long are deleted. Org-owned nodes are never GC'd — delete them explicitly with `cockpit delete node` |
 | `GRAFANA`/metrics ports | see file | protostar/starometry/cadvisor/node_exporter wiring |
 
 `NODES_NUM`, `C12S_USER/PASS/ORG`, `QCOW2_DIR`, `METRICS_*` are read by
 `start.sh` at run time (environment overrides `.env`).
+
+Nodes heartbeat every 30 s (`HEARTBEAT_INTERVAL` in `node.env`; the value is
+baked into the node image's environment and read by star). A node that
+heartbeats successfully shows up as `online` in `cockpit list nodes`; a node
+whose record Magnetar lost (e.g. `stop.sh --clean`) learns this from the
+heartbeat reply and re-registers with the same id.
 
 ## Status
 
