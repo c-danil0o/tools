@@ -136,7 +136,7 @@ matter most day-to-day:
 | `SINGULARITY_PORT` / `SINGULARITY_HOST_PORT` | `5000` / `5001` | registry inside/outside compose (nodes see `192.168.122.1:5001`) |
 | `SINGULARITY_FILES_PORT` / `..._HOST_PORT` | `8080` / `8081` | artifact server inside/outside |
 | `SUPERNOVA_PORT` / `SUPERNOVA_HOST_PORT` | `8090` | build service (bound to `127.0.0.1` only) |
-| `SUPERNOVA_ENGINE_REGISTRY` | `localhost:5001` | where the build engine pushes (host view) |
+| `SUPERNOVA_ENGINE_REGISTRY` | `localhost:5001` | registry address the push reaches (compose: `singularity:5000`) |
 | `NATS_ADDRESS` | `nats:4222` | broker address given to in-network services |
 | `SECRET_KEY` | `secret-key` | shared JWT signing key (lab value) |
 | `BIND_PORT` | `7946` | Serf/gossip port baked into images and docker nodes |
