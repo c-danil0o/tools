@@ -29,7 +29,7 @@ Compose service → source repo (build context is the workspace root):
 | `protostar_healthcheck`, `protostar_metrics` | `protostar` | node metric ingestion |
 | `singularity` | upstream Zot image (`singularity/config/zot-config.json`) | OCI registry `:5001` |
 | `singularity-files` | `singularity` | qcow2/artifact server `:8081` |
-| `supernova` | `supernova` | image + qcow2 build service (`127.0.0.1:8090`) |
+| `supernova` | `supernova` | gRPC image + qcow2 build service (`127.0.0.1:8090`); reached by the gateway as `supernova:8090` |
 | `node_exporter`, `cadvisor`, `prometheus_healthcheck`, grafana | upstream | metrics |
 
 ## Running

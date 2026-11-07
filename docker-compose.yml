@@ -554,6 +554,9 @@ services:
       - SUPERNOVA_PORT=${SUPERNOVA_PORT}
       - SUPERNOVA_ENGINE_REGISTRY=${SUPERNOVA_ENGINE_REGISTRY}
       - SUPERNOVA_ARTIFACTS_URL=http://${SINGULARITY_FILES_HOSTNAME}:${SINGULARITY_FILES_PORT}
+      # image.build|image|<name> is checked in Supernova, like the other
+      # backends: the gateway forwards the signed JWT as authz-token.
+      - SECRET_KEY=${SECRET_KEY}
       # qcow2 builds bind-mount work dirs into a sibling container via the host
       # daemon, so the dir must exist at the same path on host and here
       - SUPERNOVA_WORK_DIR=/var/tmp/supernova
