@@ -34,10 +34,15 @@ bash -c 'source common.sh; broken_image 1'                    # <GOOD_TAG>-broke
 Provisioning disk (qcow2) through Supernova, from a pushed image:
 
 ```bash
-curl -X POST localhost:8090/build/qcow2 -H 'Content-Type: application/json' \
-  -d '{"name":"edge-base-v3.11","imageRef":"192.168.122.1:5001/os/edge-base:v3.11"}'
-# -> poll localhost:8090/jobs/<id>; disk lands on the artifact server (:8081)
+cockpit image build qcow2 --name edge-base-v3.11 \
+  --image-ref 192.168.122.1:5001/os/edge-base:v3.11
+# -> prints the artifact name and checksum; the disk lands on the artifact server (:8081)
 ```
+
+The command goes through the gateway's authenticated `BuildQCOW2` route. The
+`curl` equivalent is `POST /apis/core/v1/builds/qcow2` with a bearer token
+(the gateway forwards it to Supernova's gRPC `BuildQCOW2`); poll
+`GET /apis/core/v1/builds/{id}`.
 
 Use `192.168.122.1:5001/...` as the image ref: it is what nodes boot from and
 can resolve.
