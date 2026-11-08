@@ -99,6 +99,15 @@ image_update() { # <nodeid> <image-ref> <digest>
   return 1
 }
 
+# image_apply <spec-file> [--dry-run] [--force] [--timeout 30m]
+# Declarative front end: one HostImageSpec drives the build (if any) and the
+# update/rollout. The spec is a client-side document; the control plane only
+# stores the resulting per-node desired image.
+image_apply() {
+  local spec=$1; shift
+  cockpit_retry image apply --spec "$spec" "$@"
+}
+
 # --- node state (etcd -> protoc text) ---------------------------------------
 
 node_decode() {
