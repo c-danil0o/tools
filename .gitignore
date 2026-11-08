@@ -16,6 +16,9 @@
 
 nodeconfig
 
+# local binary installs from install-local.sh (never commit)
+bin/
+
 heliosphere/
 bootc/star
 

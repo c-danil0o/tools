@@ -70,6 +70,27 @@ artifacts) and removes dockerized nodes + Grafana; `--clean` additionally does
 `docker compose down -v` and removes `nodeconfig/`. **Libvirt VMs (wormhole)
 are left running** — edge nodes outlive the control plane.
 
+### Local binaries (no system install)
+
+`install-local.sh` builds the c12s binaries into one folder (default
+`tools/bin/`) and writes `<bin-dir>/activate.sh`. Nothing is written to
+`/usr/local/bin`, `/etc/profile`, or `~/.bashrc`:
+
+```bash
+./install-local.sh                 # cockpit, star, starometry, protostar, wormhole
+./install-local.sh --all           # also lunar-gateway, magnetar, oort, apollo, ...
+./install-local.sh --bin-dir ~/c12s-bin
+source tools/bin/activate.sh       # or: source ~/c12s-bin/activate.sh
+```
+
+The activation script adds the folder to `PATH` for the current shell only.
+It also wraps `cockpit` so it runs from the cockpit repo (the binary reads
+`.env` and `token.txt` from its current directory). The built binaries are
+plain ELF files; `bin/` is git-ignored. The observability binaries
+(`starometry`, `health-check`, `node-metrics`, `cluster-metrics-subscriber`)
+are useful for running the stack outside Compose; they still expect the
+environment variables described in the service READMEs.
+
 ### Lifecycle and reboot behavior
 
 `docker compose` is a CLI, not a daemon: after `up -d` returns, Docker owns
