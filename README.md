@@ -84,12 +84,13 @@ source tools/bin/activate.sh       # or: source ~/c12s-bin/activate.sh
 ```
 
 The activation script adds the folder to `PATH` for the current shell only.
-It also wraps `cockpit` so it runs from the cockpit repo (the binary reads
-`.env` and `token.txt` from its current directory). The built binaries are
-plain ELF files; `bin/` is git-ignored. The observability binaries
-(`starometry`, `health-check`, `node-metrics`, `cluster-metrics-subscriber`)
-are useful for running the stack outside Compose; they still expect the
-environment variables described in the service READMEs.
+Use `activate.sh` for bash/zsh and `activate.fish` for fish (fish cannot source
+the bash `case` syntax). It also wraps `cockpit` so it runs from the cockpit
+repo (the binary reads `.env` and `token.txt` from its current directory).
+The built binaries are plain ELF files; `bin/` is git-ignored. The observability
+binaries (`starometry`, `health-check`, `node-metrics`,
+`cluster-metrics-subscriber`) are useful for running the stack outside Compose;
+they still expect the environment variables described in the service READMEs.
 
 ### Lifecycle and reboot behavior
 

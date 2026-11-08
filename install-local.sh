@@ -7,19 +7,21 @@
 # the current shell only:
 #
 #   ./install-local.sh                 # build into tools/bin
-#   source tools/bin/activate.sh       # add tools/bin to PATH (current shell)
+#   source tools/bin/activate.sh       # add tools/bin to PATH (bash/zsh)
+#   source tools/bin/activate.fish     # same for fish
 #
 # Pick a different folder:
 #
 #   ./install-local.sh --bin-dir ~/c12s-bin
 #   source ~/c12s-bin/activate.sh
+#   source ~/c12s-bin/activate.fish
 #
 # Build only some binaries:
 #
 #   ./install-local.sh --only cockpit,starometry,health-check,node-metrics
 #
 # Usage:
-#   ./install-local.sh [--bin-dir DIR] [--only NAME[,NAME]] [--all] [--clean] [--list]
+#   ./install-local.sh [--bin-dir DIR] [--only NAME[,NAME]] [--all] [--clean] [--list] [--no-build]
 #
 # Defaults build: cockpit, star, starometry, health-check, node-metrics,
 # cluster-metrics-subscriber, wormhole.  --all adds the control-plane
@@ -28,7 +30,7 @@
 #
 # Note: the cockpit binary reads .env and token.txt from its own directory,
 # so run it from the cockpit repo (or use the ck() helper in plan/demo.md):
-#   (cd cockpit && ./bin/cockpit ...)  # or the activate.sh wrapper
+#   (cd cockpit && ./bin/cockpit ...)  # or the activate.sh/activate.fish wrapper
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -38,6 +40,7 @@ ONLY=""
 ALL=0
 CLEAN=0
 LIST=0
+NO_BUILD=0
 
 usage() {
   awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"
@@ -52,6 +55,7 @@ while [ $# -gt 0 ]; do
     --all) ALL=1; shift ;;
     --clean) CLEAN=1; shift ;;
     --list) LIST=1; shift ;;
+    --no-build) NO_BUILD=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
@@ -132,7 +136,11 @@ for want in "${WANTED[@]}"; do
   for entry in "${BUILDERS[@]}"; do
     IFS='|' read -r name repo pkg <<< "$entry"
     if [ "$name" = "$want" ]; then
-      build_one "$name" "$repo" "$pkg"
+      if [ "$NO_BUILD" = 1 ]; then
+        log "skip build $name (--no-build)"
+      else
+        build_one "$name" "$repo" "$pkg"
+      fi
       found=1
       break
     fi
@@ -158,8 +166,26 @@ cockpit() {
 }
 EOF
 
+# activate.fish: fish cannot source activate.sh (it uses bash `case` syntax).
+cat > "$BIN_DIR/activate.fish" <<EOF
+# Source this file to put the c12s binaries on PATH for the current fish shell.
+#   source "$BIN_DIR/activate.fish"
+# Nothing is written to ~/.config/fish/config.fish or /etc/profile.
+set -gx C12S_BIN_DIR "$BIN_DIR"
+set -gx C12S_WORKSPACE "$WORKSPACE"
+if not contains -- \$C12S_BIN_DIR \$PATH
+    set -gx PATH \$C12S_BIN_DIR \$PATH
+end
+function cockpit
+    pushd \$C12S_WORKSPACE/cockpit >/dev/null
+    \$C12S_BIN_DIR/cockpit \$argv
+    popd >/dev/null
+end
+EOF
+
 log "built into $BIN_DIR"
 log "activate in the current shell:"
-printf '  source %s/activate.sh\n' "$BIN_DIR"
+printf '  bash: source %s/activate.sh\n' "$BIN_DIR"
+printf '  fish: source %s/activate.fish\n' "$BIN_DIR"
 log "binaries:"
-ls -1 "$BIN_DIR" | grep -v '^activate.sh$' | sed 's/^/  /'
+ls -1 "$BIN_DIR" | grep -v '^activate\.\(sh\|fish\)$' | sed 's/^/  /'
