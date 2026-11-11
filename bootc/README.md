@@ -61,7 +61,7 @@ docker/podman.
 
 | File | Written by | Holds | Changes when |
 |---|---|---|---|
-| `/usr/lib/c12s/node.env` | this image (`node.env` here) | values shared by every node: `NATS_ADDRESS`, ports, poll interval | every image update |
+| `/usr/lib/c12s/node.env` | this image (`node.env` here) | values shared by every node: `NATS_ADDRESS`, `IMAGE_REGISTRY` (completes short refs like `os/edge-base:v4.1`), `DISK_REGISTRY_URL`, ports, poll interval | every image update |
 | `/var/lib/c12s/node.env` | cloud-init, from the seed (wormhole, or star for VMs) | per-node values: `VM_NETWORK`, `VM_IP_BASE`, optional overrides | first boot only |
 
 `star.service` and `02-cp-reachability.sh` read both in that order; a key in
