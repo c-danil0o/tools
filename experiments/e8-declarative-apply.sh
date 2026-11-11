@@ -47,7 +47,7 @@ spec:
     edge-base:
       ref: $ref$pin
   nodes:
-    - {id: $CANARY, name: canary, image: edge-base}
+    - {id: $CANARY, name: canary, image: edge-base, canary: true}
     - {id: $TARGET, name: target, image: edge-base}
   rollout:
     soak: 2m
