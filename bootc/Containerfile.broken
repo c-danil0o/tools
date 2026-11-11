@@ -15,6 +15,7 @@ FROM ${BASE}
 
 ARG OS_VERSION=v4.1-broken
 RUN echo "edge-base ${OS_VERSION}" > /usr/share/os-version
+LABEL org.opencontainers.image.version="${OS_VERSION}"
 
 COPY greenboot/99-always-fail.sh /etc/greenboot/check/required.d/99-always-fail.sh
 RUN chmod 0755 /etc/greenboot/check/required.d/99-always-fail.sh && \

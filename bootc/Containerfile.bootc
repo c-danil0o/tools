@@ -79,6 +79,10 @@ ARG STAR_BINARY=star
 # /usr/share/os-version and in `cockpit image status` once wired)
 ARG OS_VERSION=v1
 RUN echo "edge-base ${OS_VERSION}" > /usr/share/os-version
+# bootc reports this label as the image version (`bootc status`, and the
+# VERSION column of `cockpit image status`); without it the Fedora base's
+# version (45.YYYYMMDD.N) shows instead
+LABEL org.opencontainers.image.version="${OS_VERSION}"
 
 # optional per-version packages: the visible difference between two builds
 ARG EXTRA_PACKAGES=""
