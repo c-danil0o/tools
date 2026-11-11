@@ -4,6 +4,7 @@
 # a systemd unit for it, and greenboot health checks.
 #
 # Expected build context (tools/bootc/):
+#   node.env          node defaults (control-plane addresses), -> /usr/lib/c12s/
 #   star              prebuilt linux/amd64 star binary
 #                     (cd star && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/star ./cmd)
 #
@@ -83,6 +84,12 @@ RUN if [ -n "$EXTRA_PACKAGES" ]; then dnf -y install $EXTRA_PACKAGES && dnf clea
 # --- star agent -------------------------------------------------------------
 COPY ${STAR_BINARY} /usr/local/bin/star
 RUN chmod 0755 /usr/local/bin/star
+
+# --- node defaults ----------------------------------------------------------
+# Control-plane addresses and agent settings shared by every node. They live
+# in /usr, so every image update delivers them; /var/lib/c12s/node.env (from
+# the cloud-init seed) holds only per-node values and overrides.
+COPY node.env /usr/lib/c12s/node.env
 
 # --- systemd unit -----------------------------------------------------------
 COPY systemd/star.service /usr/lib/systemd/system/star.service

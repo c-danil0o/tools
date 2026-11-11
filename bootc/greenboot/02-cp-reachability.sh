@@ -18,7 +18,8 @@
 set -o pipefail
 
 STATE_DIR="/var/lib/c12s"
-ENV_FILE="$STATE_DIR/node.env"
+# same order as star.service: image defaults, then per-node values (wins)
+ENV_FILES=("/usr/lib/c12s/node.env" "$STATE_DIR/node.env")
 ATTEMPT_FILE="$STATE_DIR/os_attempt.json"
 
 json_field() { # <file> <field>
@@ -44,18 +45,23 @@ else
     GATED=0
 fi
 
-if [ ! -f "$ENV_FILE" ]; then
-    echo "node env file $ENV_FILE missing"
+loaded=0
+for f in "${ENV_FILES[@]}"; do
+    if [ -f "$f" ]; then
+        # shellcheck disable=SC1090
+        source "$f"
+        loaded=1
+    fi
+done
+if [ "$loaded" = 0 ]; then
+    echo "no node env file (${ENV_FILES[*]})"
     [ "$GATED" = 1 ] && exit 1
     exit 0
 fi
 
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-
 NATS_TARGET="${NATS_ADDRESS:-$NATS_HOSTNAME:$NATS_PORT}"
 if [ -z "$NATS_TARGET" ] || [ "$NATS_TARGET" = ":" ]; then
-    echo "NATS address not configured in $ENV_FILE"
+    echo "NATS address not configured in ${ENV_FILES[*]}"
     [ "$GATED" = 1 ] && exit 1
     exit 0
 fi

@@ -11,9 +11,10 @@ It does **not** hold node-local state — see `/var/lib/c12s/` semantics in
 |---|---|---|
 | `Containerfile.bootc` | — | image recipe (`quay.io/fedora/fedora-bootc:45` base) |
 | `Containerfile.broken` | — | good image + `99-always-fail.sh` (rollback/canary tests) |
-| `systemd/star.service` | `/usr/lib/systemd/system/` | runs Star at boot, `Restart=always` |
+| `node.env` | `/usr/lib/c12s/node.env` | node defaults shared by every node (NATS address, agent settings); changed by an image update |
+| `systemd/star.service` | `/usr/lib/systemd/system/` | runs Star at boot, `Restart=always`; loads `/usr/lib/c12s/node.env`, then `/var/lib/c12s/node.env` (per-node, wins) |
 | `greenboot/01-star-health.sh` | `/etc/greenboot/check/required.d/` | boot gate: star service active (waits ≤60 s) |
-| `greenboot/02-cp-reachability.sh` | `/etc/greenboot/check/required.d/` | boot gate on **update boots only** (star's attempt is `applied` on an earlier boot and the attempted image is booted): NATS reachable per `node.env` within 60 s, else rollback; on other boots an unreachable CP only logs a warning (review R14) |
+| `greenboot/02-cp-reachability.sh` | `/etc/greenboot/check/required.d/` | boot gate on **update boots only** (star's attempt is `applied` on an earlier boot and the attempted image is booted): NATS reachable per `node.env` (image defaults, then the per-node file) within 60 s, else rollback; on other boots an unreachable CP only logs a warning (review R14) |
 | `greenboot/99-always-fail.sh` | (broken image only) | always fails |
 
 The image also trusts the lab registry `192.168.122.1:5001` (insecure),
@@ -55,6 +56,19 @@ Use `192.168.122.1:5001/...` as the image ref: it is what nodes boot from and
 can resolve. The experiment helpers (`tools/experiments/common.sh`
 `build_image`, `broken_image`) build the same Containerfiles directly with
 docker/podman.
+
+## Node configuration: image defaults + per-node file
+
+| File | Written by | Holds | Changes when |
+|---|---|---|---|
+| `/usr/lib/c12s/node.env` | this image (`node.env` here) | values shared by every node: `NATS_ADDRESS`, ports, poll interval | every image update |
+| `/var/lib/c12s/node.env` | cloud-init, from the seed (wormhole, or star for VMs) | per-node values: `VM_NETWORK`, `VM_IP_BASE`, optional overrides | first boot only |
+
+`star.service` and `02-cp-reachability.sh` read both in that order; a key in
+the per-node file wins. To move the control plane, edit `node.env`, build,
+and roll out: the update travels over the old address, and an image whose
+address is unreachable fails the update boot and rolls back. Keep the old
+address reachable until every node has moved.
 
 ## How the health gate and rollback work
 
