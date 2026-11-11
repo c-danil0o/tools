@@ -26,10 +26,10 @@ C12S_ORG="${C12S_ORG:-c12s}"
 ETCD_CONTAINER="${ETCD_CONTAINER:-etcd}"
 ZOT="${ZOT:-localhost:5001}"
 SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
-HOST_VM_IP="${HOST_VM_IP:-192.168.122.51}"
+HOST_VM_IP="${HOST_VM_IP:-192.168.122.61}"   # VM host = node-1 (wormhole config.libvirt.yaml)
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
-FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v3.11.qcow2}"
-GOOD_TAG="${GOOD_TAG:-v3.17}"
+FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v4.0.qcow2}"
+GOOD_TAG="${GOOD_TAG:-v4.1}"
 GOOD_VERSION="${GOOD_VERSION:-$GOOD_TAG}"
 
 HOST_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o BatchMode=yes c12s@$HOST_VM_IP"
