@@ -12,6 +12,7 @@ this repository; the build contexts are the sibling repos of the workspace.
 |---|---|
 | `docker-compose.yml` | the full lab stack: control plane + registry/artifacts + build service + metrics |
 | `start.sh` / `stop.sh` | idempotent bring-up / shutdown (schema, vault, test user, image re-seeding) |
+| `image-cache.sh` | `save`/`load`/`list` built OS images (digest-preserving OCI archives via skopeo) and qcow2 disks to/from `~/.c12s/image-cache`, so a wiped or new control plane gets them back without rebuilding |
 | `experiments/` | `setup-fleet.sh` and E1–E7 thesis experiments (see `plan/`) |
 | `bootc/` | Containerfiles + greenboot checks that go **into** the node OS image |
 | `docs/README.md` | corrected API/CLI reference (the old docs were wrong in places) |
