@@ -22,20 +22,27 @@ persistent journal, and sets `GREENBOOT_MAX_BOOT_ATTEMPTS=2`.
 
 ## Build
 
-Normally through the experiment helpers (they build star, the image, and push
-to the lab registry):
+Through the control plane (gateway → Supernova; needs the
+`image.build|image|os/edge-base` policy, and `image.build|image|<disk-name>`
+for the disk). Rebuild the star binary first: the image ships whatever
+`tools/bootc/star` holds.
 
 ```bash
-cd tools/experiments
-bash -c 'source common.sh; build_image v3.11 v3.11'          # good image
-bash -c 'source common.sh; broken_image 1'                    # <GOOD_TAG>-broken-1
+cd star && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/star ./cmd && cd ..
+cockpit image build --name os/edge-base --tag v4.0 --context tools/bootc \
+  --containerfile Containerfile.bootc --build-arg OS_VERSION=v4.0 --wait
+cockpit image build --name os/edge-base --tag v4.1-broken --context tools/bootc \
+  --containerfile Containerfile.broken \
+  --build-arg BASE=localhost:5001/os/edge-base:v4.1 --build-arg OS_VERSION=v4.1-broken --wait
 ```
+
+`EXTRA_PACKAGES="htop tmux"` (build arg) adds packages to one version.
 
 Provisioning disk (qcow2) through Supernova, from a pushed image:
 
 ```bash
-cockpit image build qcow2 --name edge-base-v3.11 \
-  --image-ref 192.168.122.1:5001/os/edge-base:v3.11
+cockpit image build qcow2 --name edge-base-v4.0 \
+  --image-ref 192.168.122.1:5001/os/edge-base:v4.0 --wait
 # -> prints the artifact name and checksum; the disk lands on the artifact server (:8081)
 ```
 
@@ -45,7 +52,9 @@ The command goes through the gateway's authenticated `BuildQCOW2` route. The
 `GET /apis/core/v1/builds/{id}`.
 
 Use `192.168.122.1:5001/...` as the image ref: it is what nodes boot from and
-can resolve.
+can resolve. The experiment helpers (`tools/experiments/common.sh`
+`build_image`, `broken_image`) build the same Containerfiles directly with
+docker/podman.
 
 ## How the health gate and rollback work
 
