@@ -5,8 +5,7 @@
 # artifacts), so ./start.sh resumes where you left off.
 # --clean also deletes the volumes and dockerized node ids: the next start is
 # from scratch (apollo re-initializes vault and rewrites vault/api_key.json,
-# start.sh re-creates the test user and re-pushes the qcow2 and local
-# edge-base images). Enrolled bootc nodes keep their node id and re-register
+# start.sh re-creates the test user and re-uploads the qcow2). Enrolled bootc nodes keep their node id and re-register
 # by themselves.
 #
 # libvirt VMs (wormhole) are left running — edge nodes outlive the CP.

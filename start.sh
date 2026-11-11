@@ -7,8 +7,8 @@
 #   2. applies the scylla schema (idempotent)
 #   3. checks vault got unsealed by apollo with tools/vault/api_key.json
 #   4. makes sure the test user exists and can log in
-#   5. re-seeds the provisioning qcow2 and the local edge-base images into the
-#      artifact server / registry if they are missing (after stop.sh --clean)
+#   5. re-seeds the provisioning qcow2 into the artifact server if it is
+#      missing (after stop.sh --clean)
 #   6. optionally starts dockerized star/starometry nodes (NODES_NUM)
 #
 # Environment:
@@ -157,18 +157,6 @@ for disk in "$QCOW2_DIR"/edge-base-*.qcow2; do
     fi
 done
 
-# Registry images: re-push local edge-base tags the registry lost.
-REGISTRY="localhost:${SINGULARITY_HOST_PORT:-5001}"
-if command -v podman >/dev/null 2>&1; then
-    tags=$(curl -sf "http://$REGISTRY/v2/os/edge-base/tags/list" || echo '{}')
-    for ref in $(podman images --format '{{.Repository}}:{{.Tag}}' | grep "^$REGISTRY/os/edge-base:" || true); do
-        if ! grep -q "\"${ref##*:}\"" <<<"$tags"; then
-            log "pushing $ref to the registry"
-            podman push --tls-verify=false "$ref" >/dev/null || fail "push of $ref failed"
-        fi
-    done
-fi
-
 # --- grafana ------------------------------------------------------------------
 docker rm -f grafana >/dev/null 2>&1 || true
 docker run -d --name=grafana \
@@ -237,4 +225,4 @@ if [ "$NODES_NUM" -gt 0 ]; then
 fi
 
 log "control plane up: gateway $GATEWAY, registry localhost:${SINGULARITY_HOST_PORT:-5001}, artifacts $ARTIFACTS"
-log "bootc nodes: cd ../wormhole && ./wormhole -c config.host.yaml create   (host-1 + its VMs)"
+log "bootc nodes: cd ../wormhole && ./wormhole -c config.host.yaml create (plain node) / ./wormhole -c config.libvirt.yaml create (VM host)"
