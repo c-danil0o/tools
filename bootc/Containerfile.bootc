@@ -5,14 +5,19 @@
 #
 # Expected build context (tools/bootc/):
 #   star              prebuilt linux/amd64 star binary
-#                     (CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o star github.com/c12s/star/cmd)
+#                     (cd star && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/star ./cmd)
 #
-# Build:
-#   podman build -f Containerfile.bootc -t <registry>/<org>/edge-base:v1.0 .
+# Build through the control plane (Supernova builds, pushes to Zot, returns
+# the digest):
+#   cockpit image build --name os/edge-base --tag v4.0 --context tools/bootc \
+#     --containerfile Containerfile.bootc --build-arg OS_VERSION=v4.0 --wait
 #
-# The image is pushed to Singularity (Zot) and becomes the node's desired
-# OS image; Supernova (Phase 3) automates this, bootc-image-builder turns it
-# into qcow2/ISO artifacts.
+# Build args:
+#   OS_VERSION       stamped into /usr/share/os-version
+#   EXTRA_PACKAGES   optional space-separated dnf packages for this version
+#
+# The provisioning disk is made from the pushed image with
+# `cockpit image build qcow2` (bootc-image-builder).
 
 FROM quay.io/fedora/fedora-bootc:45
 
@@ -71,6 +76,10 @@ ARG STAR_BINARY=star
 ARG OS_VERSION=v1
 RUN echo "edge-base ${OS_VERSION}" > /usr/share/os-version
 
+# optional per-version packages: the visible difference between two builds
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "$EXTRA_PACKAGES" ]; then dnf -y install $EXTRA_PACKAGES && dnf clean all; fi
+
 # --- star agent -------------------------------------------------------------
 COPY ${STAR_BINARY} /usr/local/bin/star
 RUN chmod 0755 /usr/local/bin/star
@@ -95,7 +104,10 @@ RUN sed -i 's/^GREENBOOT_MAX_BOOT_ATTEMPTS=.*/GREENBOOT_MAX_BOOT_ATTEMPTS=2/' /e
 # drop node.env for the control plane addresses.
 # /var/lib/star holds VM-reconciler state (qcow2 cache, per-VM disks); it must
 # be traversable by the qemu user (0755) for virt-install to work.
-RUN mkdir -p /var/lib/c12s && install -d -m 0755 /var/lib/star
+# Declared through tmpfiles.d, not created in the image: bootc unpacks image
+# /var content only at install time, never on an update.
+RUN printf 'd /var/lib/c12s 0755 root root -\nd /var/lib/star 0755 root root -\n' \
+      > /usr/lib/tmpfiles.d/c12s.conf
 
 # --- persistent journal -------------------------------------------------------
 # Default Storage=auto stays volatile without /var/log/journal, so star's log
