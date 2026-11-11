@@ -334,6 +334,8 @@ services:
     environment:
       - DB_CONSUL=${DB_CONSUL}
       - DBPORT_CONSUL=${DBPORT_CONSUL}
+      - RL_DEFAULT_REQ_PER_SEC=${RL_DEFAULT_REQ_PER_SEC:-1}
+      - RL_DEFAULT_BURST=${RL_DEFAULT_BURST:-1}
     networks:
       network:
         ipv4_address: 10.5.0.116
