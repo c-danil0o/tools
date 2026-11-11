@@ -99,10 +99,10 @@ image_update() { # <nodeid> <image-ref> <digest>
   return 1
 }
 
-# image_apply <spec-file> [--dry-run] [--force] [--timeout 30m]
-# Declarative front end: one HostImageSpec drives the build (if any) and the
-# update/rollout. The spec is a client-side document; the control plane only
-# stores the resulting per-node desired image.
+# image_apply <spec-file> [--dry-run] [--force]
+# Declarative front end: a HostImageSpec names nodes by id with an image each
+# (and VM sets for hosts); apply updates only those nodes, canary first. The
+# spec is a client-side document; the control plane stores per-node intent.
 image_apply() {
   local spec=$1; shift
   cockpit_retry image apply --spec "$spec" "$@"
