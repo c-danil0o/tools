@@ -29,8 +29,9 @@
 # blackhole, discovery, monoceros, stellar, starmap).
 #
 # Note: the cockpit binary reads .env and token.txt from its own directory,
-# so run it from the cockpit repo (or use the ck() helper in plan/demo.md):
-#   (cd cockpit && ./bin/cockpit ...)  # or the activate.sh/activate.fish wrapper
+# so run it from the cockpit repo (or use the cockpit() function that
+# activate.sh/activate.fish define, as in plan/demo-runbook.md):
+#   (cd cockpit && ../tools/bin/cockpit ...)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
