@@ -48,10 +48,13 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 # NOTE: rpm scriptlets do not run `systemctl preset` during image builds, so
 # the units must be enabled explicitly — otherwise health checks never run
 # and no rollback trigger is ever set (observed on the E2 VM).
+# audit: auditd writes audit records (SELinux AVCs, PAM logins) to
+# /var/log/audit/audit.log. Without it the kernel prints every record to the
+# console, which is ttyS0 here, and floods the serial login session.
 RUN dnf -y install cloud-init greenboot xorriso libvirt-daemon-kvm \
-      libvirt-daemon-config-network libvirt-client virt-install qemu-img && \
+      libvirt-daemon-config-network libvirt-client virt-install qemu-img audit && \
     dnf clean all && \
-    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service
+    systemctl enable greenboot-healthcheck.service greenboot-set-rollback-trigger.service auditd.service
 # Keep greenboot's 08_greenboot.cfg GRUB snippet: it is the rollback
 # mechanism (counts boot_counter down, boots default=1 at 0) and resets
 # boot_success=0 every boot. bootc-image-builder installs it into /boot when
