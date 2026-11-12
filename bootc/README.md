@@ -16,6 +16,8 @@ It does **not** hold node-local state — see `/var/lib/c12s/` semantics in
 | `greenboot/01-star-health.sh` | `/etc/greenboot/check/required.d/` | boot gate: star service active (waits ≤60 s) |
 | `greenboot/02-cp-reachability.sh` | `/etc/greenboot/check/required.d/` | boot gate on **update boots only** (star's attempt is `applied` on an earlier boot and the attempted image is booted): NATS reachable per `node.env` (image defaults, then the per-node file) within 60 s, else rollback; on other boots an unreachable CP only logs a warning (review R14) |
 | `greenboot/99-always-fail.sh` | (broken image only) | always fails |
+| `specs/fleet.yaml` | — (reference, not in the image) | fleet spec for `cockpit image apply`: images per node, VM set per host, canary, rollout |
+| `specs/vms.yaml` | — (reference, not in the image) | VM list for `cockpit vms set` on a VM host |
 
 The image also trusts the lab registry `192.168.122.1:5001` (insecure),
 installs libvirt/virt-install (used only by `run_vms` nodes), keeps a
