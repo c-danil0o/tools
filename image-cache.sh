@@ -5,7 +5,8 @@
 #
 #   ./image-cache.sh save [tag...]   registry + artifact server -> cache
 #                                    (default: every os/edge-base tag, every qcow2)
-#   ./image-cache.sh load            cache -> registry + artifact server
+#   ./image-cache.sh load [tag...]   cache -> registry + artifact server
+#                                    (default: every cached tag; disks always)
 #   ./image-cache.sh list            what the cache holds, with digests
 #
 # Images are copied with `skopeo copy --preserve-digests` into OCI archives,
@@ -64,11 +65,15 @@ save() {
 
 load() {
   [ -d "$CACHE" ] || fail "no cache at $CACHE (run save first)"
+  local only=" $* "
   for f in "$CACHE"/*.tar; do
     [ -e "$f" ] || continue
     local name tag want got
     name=$(basename "$f")
     tag=${name#"${REPO//\//_}_"}; tag=${tag%.tar}
+    if [ $# -gt 0 ] && [[ "$only" != *" $tag "* ]]; then
+      continue
+    fi
     want=$(cat "$f.digest" 2>/dev/null || true)
     log "image $REPO:$tag"
     skopeo copy --dest-tls-verify=false --preserve-digests \
@@ -102,7 +107,7 @@ list() {
 
 case "${1:-}" in
   save) shift; save "$@" ;;
-  load) load ;;
+  load) shift; load "$@" ;;
   list) list ;;
   *) sed -n '2,20p' "$0"; exit 1 ;;
 esac
