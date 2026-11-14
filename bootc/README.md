@@ -35,6 +35,7 @@ cd star && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/star
 cd starometry && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/starometry ./cmd && cd ..
 cockpit image build --name os/edge-base --tag v4.0 --context tools/bootc \
   --containerfile Containerfile.bootc --build-arg OS_VERSION=v4.0 --wait
+docker pull -q localhost:5001/os/edge-base:v4.1   # BASE is resolved by the host daemon: no stale copy
 cockpit image build --name os/edge-base --tag v4.1-broken --context tools/bootc \
   --containerfile Containerfile.broken \
   --build-arg BASE=localhost:5001/os/edge-base:v4.1 --build-arg OS_VERSION=v4.1-broken --wait
