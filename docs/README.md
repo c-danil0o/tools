@@ -2254,6 +2254,30 @@ The endpoint for listing placement task statuses for the specified configuration
  - Configuration not found.
 
 
+### OS management routes (bootc)
+
+All under `/apis/core/v1`, with `Authorization: Bearer <token>`. JSON field
+names are the proto names as the gateway's grpcurl parser accepts them
+(`snake_case` for gravity, `camelCase` for magnetar/supernova). cockpit is
+the reference client (`cockpit image …`, `cockpit vms …`).
+
+| Method + route | gRPC | Body | Permission |
+|---|---|---|---|
+| `POST /images/update` | Gravity `DisseminateOSImage` | `{"node_id","image_ref","digest","reboot_policy":"immediate"}` (digest `sha256:<64 hex>`; ref without a digest; a short ref like `os/edge-base:v4.1` is completed by the node) | `os.update` on the node or on its org |
+| `GET /images` | Supernova `ListImages` | `{}` | token |
+| `POST /builds` | Supernova `BuildImage` | `{"spec":{"name","tag","containerfile","registry","buildArgs":{}},"context":"<base64 tar.gz>"}` | `image.build\|image\|<name>` |
+| `POST /builds/qcow2` | Supernova `BuildQCOW2` | `{"name","imageRef","targetArch","rootfs"}` | `image.build\|image\|<name>` |
+| `GET /builds`, `GET /builds/{id}` | Supernova `ListJobs`, `GetJob` | — | token |
+| `POST /vms` | Magnetar `SetDesiredVms` | `{"hostId","vms":[{"name","qcow2Url","digest","vcpus","memoryMb"}]}` (the host's complete set; `qcow2Url` may be an artifact name) | `node.put` on the host |
+| `GET /vms/desired`, `GET /vms/status` | Magnetar `GetDesiredVms`, `GetVmStatuses` | `{"hostId"}` | `node.get` on the host |
+| `DELETE /nodes` | Magnetar `DeleteNode` | `{"nodeId"}` | `node.delete` on the node |
+| `GET /schemas/validations` | Quasar `ValidateConfiguration` | `{"schema_details":{"organization","namespace":"default","schemaName":"host-image-spec","version":"v1.0.0"},"configuration":"<fleet spec YAML>"}` | `config.get` on the schema |
+
+`GET /nodes/allocated` (`ListOrgOwnedNodes`) carries each node's
+`osStatus` (phase, booted, rollback deployment) and liveness; the desired
+image comes from Magnetar's `desired_os/<node>`. Policies apply without
+re-login (Apollo mints permissions per request).
+
 ## Example workflow
 
 There is a `demo.json` Postman collection in the `tools` directory. It demonstrates a scenario covering all steps that need to be taken from user registration to getting a sample configuration disseminated to a subset of nodes.

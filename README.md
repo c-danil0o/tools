@@ -13,7 +13,7 @@ this repository; the build contexts are the sibling repos of the workspace.
 | `docker-compose.yml` | the full lab stack: control plane + registry/artifacts + build service + metrics |
 | `start.sh` / `stop.sh` | idempotent bring-up / shutdown (schema, vault, test user, image re-seeding) |
 | `image-cache.sh` | `save`/`load`/`list` built OS images (digest-preserving OCI archives via skopeo) and qcow2 disks to/from `~/.c12s/image-cache`, so a wiped or new control plane gets them back without rebuilding |
-| `experiments/` | `setup-fleet.sh` and E1–E7 thesis experiments (see `plan/`) |
+| `experiments/` | `setup-fleet.sh` and E1–E8 thesis experiments (see `plan/`) |
 | `bootc/` | Containerfiles + greenboot checks that go **into** the node OS image |
 | `docs/README.md` | corrected API/CLI reference (the old docs were wrong in places) |
 | `vault/`, `scylla/`, `grafana/` | local infra images/config for the stack |
@@ -129,9 +129,10 @@ restarts the whole stack automatically. Consequences:
 
 ```bash
 cd experiments
-./setup-fleet.sh 2          # build the good image, claim host-1, create 2 VMs,
-                            # wait for enrollment/health, pin the good image
-./e1-rollback-reliability.sh ... ./e7-cp-unreachable-boot.sh
+./setup-fleet.sh 2          # build the good image, claim the VM host node-1,
+                            # create 2 VMs on it, wait for enrollment/health,
+                            # pin the good image
+./e1-rollback-reliability.sh ... ./e8-declarative-apply.sh
 ```
 
 Helpers in `common.sh` (`build_image`, `broken_image`, `alt_image`,
@@ -189,7 +190,7 @@ below are not.
 
 | Where | Effect |
 |---|---|
-| `install.sh` | **Stale clone list**: misses `supernova`, `singularity`, `wormhole` — without them the compose build fails (singularity/supernova) and no bootc VMs can be made. Also lists only the CP repos the bootc lab tests need beyond that. |
+| `install.sh` | Clones the upstream default branches; until the thesis PRs are merged they lack the OS-management work (check out the feature branches by hand). |
 | `control_plane.yml` + `control_plane_start.sh`/`control_plane_stop.sh` | **Legacy, divergent second stack**: `docker compose` (no `-f`) uses `docker-compose.yml`, but running the old scripts starts a CP-only stack without singularity/supernova and different env plumbing. Two configs drift — always use `start.sh`/`stop.sh`. |
 | `node.yml` + `node_start.sh`/`node_stop.sh`, `start-windows.sh`, `control_plane.env`, `node.env`, `windows.env` | Superseded scaffolding: three different node/start mechanisms exist; only `start.sh`'s `NODES_NUM` path is maintained. |
 | Gateway rate limiter defaults | Every authenticated API call passes the per-`method`+`user` limiter; absent a configured limiter one is auto-created with `RL_DEFAULT_REQ_PER_SEC`/`RL_DEFAULT_BURST` (`.env`: 10 req/s, burst 20; the service's own default is 1/1). Limiters are stored in Consul, so ones created under an older default keep it: `docker exec tools-consul-1 consul kv delete -recurse rateLimiters/ && docker restart rate_limiter_service`. |
@@ -199,9 +200,9 @@ below are not.
 
 - **No test suite for the orchestration scripts** — they are exercised only by
   lab runs; correctness feedback comes from `start.sh`'s own waits/failures.
-- **Registry re-seeding requires `podman` on the host**: machines without it
-  silently skip the registry half of step 5 (provisioning disks are still
-  re-uploaded via curl; image tags are not re-pushed).
+- **`start.sh` re-seeds only the provisioning disk** (from
+  `~/.wormhole/images`); OS image tags come back with
+  `./image-cache.sh load` (or are rebuilt).
 - `supernova` is bound to `127.0.0.1` deliberately (review S3) — a remote
   build host is not supported by this stack layout.
 - Metrics Grafana wiring is convenience-grade: dashboards/datasources are
