@@ -27,11 +27,12 @@ persistent journal, and sets `GREENBOOT_MAX_BOOT_ATTEMPTS=2`.
 
 Through the control plane (gateway → Supernova; needs the
 `image.build|image|os/edge-base` policy, and `image.build|image|<disk-name>`
-for the disk). Rebuild the star binary first: the image ships whatever
-`tools/bootc/star` holds.
+for the disk). Rebuild the star and starometry binaries first: the image ships
+whatever `tools/bootc/star` and `tools/bootc/starometry` hold.
 
 ```bash
 cd star && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/star ./cmd && cd ..
+cd starometry && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ../tools/bootc/starometry ./cmd && cd ..
 cockpit image build --name os/edge-base --tag v4.0 --context tools/bootc \
   --containerfile Containerfile.bootc --build-arg OS_VERSION=v4.0 --wait
 cockpit image build --name os/edge-base --tag v4.1-broken --context tools/bootc \
@@ -105,3 +106,32 @@ cd tools/experiments && ./e3-canary-gate.sh   # canary rollout of <GOOD_TAG>-bro
 Expected: the node boots the broken deployment twice, falls back to the
 previous one, and reports `phase: rolled_back` (~2.5 min on the nested lab
 VMs).
+
+## Metrics (starometry)
+
+Every node runs `prometheus-node-exporter` (127.0.0.1:9100) and
+`starometry.service`. protostar's health-check asks each node Magnetar knows
+over NATS (`<nodeid>.metrics`); starometry answers with the node-exporter
+metrics, which end up in Prometheus (`localhost:9092`, label `nodeID`) and
+Grafana. There is no cAdvisor on bootc nodes (no Docker). Starometry is not a
+greenboot check: broken metrics never reboot or roll back a node.
+
+```bash
+ssh c12s@192.168.122.51 systemctl is-active starometry prometheus-node-exporter
+curl -s localhost:9092/api/v1/query --data-urlencode \
+  'query=max_over_time(node_load1{nodeID="<node id>"}[5m])' | jq .data.result
+```
+
+## Fleet spec schema (Quasar)
+
+`specs/host-image-spec.schema.yaml` is the JSON Schema for `fleet.yaml`.
+Register it once per org after the first claim (the claim creates the
+`default` namespace); `cockpit image apply` then sends every spec to Quasar
+first and stops on any violation:
+
+```bash
+cockpit create schema --org c12s --namespace default --schema-name host-image-spec \
+  --version v1.0.0 --path tools/bootc/specs/host-image-spec.schema.yaml
+cockpit validate schema --org c12s --namespace default --schema-name host-image-spec \
+  --version v1.0.0 --path fleet.yaml
+```

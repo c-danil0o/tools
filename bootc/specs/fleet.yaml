@@ -2,6 +2,10 @@
 #   cockpit image apply --spec fleet.yaml --dry-run    # show the plan
 #   cockpit image apply --spec fleet.yaml              # roll it out
 #
+# Both first send the file to Quasar, which checks it against the
+# host-image-spec schema (host-image-spec.schema.yaml, registered once with
+# cockpit create schema); any violation stops the apply.
+#
 # Declares, for the nodes listed here only, which OS image each runs and, for
 # a VM host, its complete VM set. Nodes not listed are never touched;
 # deleting a node from this file stops managing it (nothing changes on it).

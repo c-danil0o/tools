@@ -214,6 +214,8 @@ vm_nodeid() { # <vm-name> -> uuid (empty while not enrolled)
 ensure_star_binary() {
   (cd "$REPO_ROOT/star" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "$TOOLS_DIR/bootc/star" ./cmd) \
     || fail "star build failed"
+  (cd "$REPO_ROOT/starometry" && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o "$TOOLS_DIR/bootc/starometry" ./cmd) \
+    || fail "starometry build failed"
 }
 
 zot_digest() { # <tag>
