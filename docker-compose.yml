@@ -316,7 +316,7 @@ services:
       - CONSUL_LOCAL_CONFIG={"server":true,"server_rejoin_age_max":"8760h"}
     command: "agent -ui -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect 1"
     volumes:
-      - ./heliosphere/consul:/consul/data
+      - consul_data:/consul/data
     networks:
       network:
         ipv4_address: 10.5.0.115
@@ -604,4 +604,6 @@ volumes:
   zotregistry:
     driver: local
   artifacts:
+    driver: local
+  consul_data:
     driver: local
