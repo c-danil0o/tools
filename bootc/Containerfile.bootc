@@ -13,8 +13,8 @@
 #
 # Build through the control plane (Supernova builds, pushes to Zot, returns
 # the digest):
-#   cockpit image build --name os/edge-base --tag v4.0 --context tools/bootc \
-#     --containerfile Containerfile.bootc --build-arg OS_VERSION=v4.0 --wait
+#   cockpit image build --name os/edge-base --tag v1.0 --context tools/bootc \
+#     --containerfile Containerfile.bootc --build-arg OS_VERSION=v1.0 --wait
 #
 # Build args:
 #   OS_VERSION       stamped into /usr/share/os-version
@@ -29,15 +29,15 @@ FROM quay.io/fedora/fedora-bootc:45
 # and by bootc tooling that discovers OS images in a registry)
 LABEL containers.bootc="1"
 
-# Allow pulling OS images from the lab's HTTP-only Zot registry. Address
+# Allow pulling OS images from the HTTP-only Zot registry (Singularity). Address
 # depends on network mode:
 #   192.168.122.1 = libvirt default NAT gateway (wormhole-created VMs)
 #   10.0.2.2      = QEMU user-net gateway (direct qemu tests)
 RUN mkdir -p /etc/containers/registries.conf.d && \
     printf '[[registry]]\nlocation = "192.168.122.1:5001"\ninsecure = true\n[[registry]]\nlocation = "10.0.2.2:5001"\ninsecure = true\n' \
-      > /etc/containers/registries.conf.d/local-lab.conf
+      > /etc/containers/registries.conf.d/c12s-registry.conf
 
-# cloud-init: the provisioning boundary (D1) injects /var/lib/c12s/node.env
+# cloud-init: the provisioner injects /var/lib/c12s/node.env
 # and first-boot network config through a NoCloud seed (wormhole libvirt
 # backend, or any external provisioner). The base image does not ship it.
 # greenboot: the health gate — required.d checks run before boot-complete
@@ -47,10 +47,10 @@ RUN mkdir -p /etc/containers/registries.conf.d && \
 # libvirt + virt-install + xorriso: only used by nodes that report the
 # run_vms capability (the VM reconciler creates bootc VMs from qcow2
 # artifacts); installed on every node so the capability is discovered from
-# the environment, never configured (decision D2).
+# the environment, never configured.
 # NOTE: rpm scriptlets do not run `systemctl preset` during image builds, so
 # the units must be enabled explicitly — otherwise health checks never run
-# and no rollback trigger is ever set (observed on the E2 VM).
+# and no rollback trigger is ever set.
 # audit: auditd writes audit records (SELinux AVCs, PAM logins) to
 # /var/log/audit/audit.log. Without it the kernel prints every record to the
 # console, which is ttyS0 here, and floods the serial login session.
@@ -66,8 +66,8 @@ RUN dnf -y install cloud-init greenboot xorriso libvirt-daemon-kvm \
 # Keep greenboot's 08_greenboot.cfg GRUB snippet: it is the rollback
 # mechanism (counts boot_counter down, boots default=1 at 0) and resets
 # boot_success=0 every boot. bootc-image-builder installs it into /boot when
-# the disk is created; image updates never touch /boot. Removing it (DEV-12)
-# left disks built afterwards looping forever on a failing deployment.
+# the disk is created; image updates never touch /boot. Without it, disks built afterwards loop
+# forever on a failing deployment.
 
 # modular libvirt daemons are socket-activated; presets are skipped during
 # image builds, so enable the sockets explicitly
@@ -76,7 +76,7 @@ RUN for unit in virtqemud.socket virtnetworkd.socket virtstoraged.socket \
       systemctl enable "$unit" 2>/dev/null || true; \
     done
 
-# serial console for headless/lab operation and experiment logging
+# serial console for headless operation and boot logging
 RUN mkdir -p /usr/lib/bootc/kargs.d && \
     printf 'kargs = ["console=ttyS0,115200"]\n' > /usr/lib/bootc/kargs.d/10-console.toml
 

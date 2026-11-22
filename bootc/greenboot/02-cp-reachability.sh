@@ -8,7 +8,7 @@
 # Only update boots are gated. On any other boot (power loss, plain reboot)
 # the CP being down says nothing about the image: failing there made greenboot
 # reboot healthy nodes until its counter ran out and left grubenv dirty for
-# the next update (plan/review.md R14). Those boots only log a warning.
+# the next update. Those boots only log a warning.
 #
 # Update boot = star recorded an "applied" attempt on an earlier boot and the
 # booted image is the attempted one (os_attempt.json, see star internal/bootc).

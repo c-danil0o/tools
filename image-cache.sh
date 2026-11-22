@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # image-cache.sh — keep built OS images and disks on local disk, restore them
 # into the registry (Singularity/Zot) and the artifact server without
-# rebuilding. Demo prep: build once, `save`, and before a demo `load`.
+# rebuilding: build once, `save`, and `load` into a fresh control plane.
 #
 #   ./image-cache.sh save [tag...]   registry + artifact server -> cache
 #                                    (default: every os/edge-base tag, every qcow2)

@@ -72,7 +72,7 @@ definitions:
     required: [ref]
     properties:
       ref:
-        description: repo:tag, short (os/edge-base:v4.1) or with registry
+        description: repo:tag, short (os/edge-base:v1.1) or with registry
         type: string
         pattern: "^[^\\s@]+(:[A-Za-z0-9_][A-Za-z0-9._-]*)?$"
       digest: {$ref: "#/definitions/digest"}

@@ -30,7 +30,7 @@
 #
 # Note: the cockpit binary reads .env and token.txt from its own directory,
 # so run it from the cockpit repo (or use the cockpit() function that
-# activate.sh/activate.fish define, as in plan/demo-runbook.md):
+# activate.sh/activate.fish define):
 #   (cd cockpit && ../tools/bin/cockpit ...)
 set -euo pipefail
 

@@ -10,7 +10,7 @@
 # a VM host, its complete VM set. Nodes not listed are never touched;
 # deleting a node from this file stops managing it (nothing changes on it).
 #
-#   images   named OS images. ref may be short (os/edge-base:v4.1): each node
+#   images   named OS images. ref may be short (os/edge-base:v1.1): each node
 #            pulls from its IMAGE_REGISTRY. digest is optional: without it the
 #            tag is resolved to its current digest when you apply.
 #   nodes    id = the node's UUID (cat /var/lib/c12s/nodeid, or
@@ -37,18 +37,18 @@ metadata:
 spec:
   images:
     stable:
-      ref: os/edge-base:v4.1
+      ref: os/edge-base:v1.1
   nodes:
-    - id: <host-1 node id>          # plain node, 192.168.122.51
-      name: host-1
+    - id: <node id>                 # plain node
+      name: edge-1
       image: stable
       canary: true
-    - id: <node-1 node id>          # VM host, 192.168.122.61
-      name: node-1
+    - id: <vm host node id>         # VM host (run_vms)
+      name: vmhost-1
       image: stable
       vms:
-        - {name: vm-01, disk: edge-base-v4.0.qcow2, vcpus: 1, memoryMb: 1024, image: stable}
-        - {name: vm-02, disk: edge-base-v4.0.qcow2, vcpus: 1, memoryMb: 1024, image: stable}
+        - {name: vm-1, disk: edge-base-v1.0.qcow2, vcpus: 1, memoryMb: 1024, image: stable}
+        - {name: vm-2, disk: edge-base-v1.0.qcow2, vcpus: 1, memoryMb: 1024, image: stable}
   rollout:
     soak: 1m
     timeout: 15m

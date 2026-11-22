@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — clone every repo the lab stack builds into the workspace root
+# install.sh — clone every repo the compose stack builds into the workspace root
 # (the parent of tools/). Repos that are already there are left alone.
 set -euo pipefail
 cd "$(dirname "$0")/.."
