@@ -59,7 +59,7 @@ The command goes through the gateway's authenticated `BuildQCOW2` route. The
 
 Use the registry address the nodes use (`IMAGE_REGISTRY` in `node.env`) in
 the image ref: it is what nodes boot from and can resolve. The test helpers
-(`tools/experiments/common.sh` `build_image`, `broken_image`) build the same
+(`tools/e2e/common.sh` `build_image`, `broken_image`) build the same
 Containerfiles directly with docker/podman.
 
 ## Node configuration: image defaults + per-node file
@@ -101,7 +101,7 @@ Star reports `switching` until the health check has run on this boot, then
 ## Testing a broken image
 
 ```bash
-cd tools/experiments && ./e3-canary-gate.sh   # canary rollout of <GOOD_TAG>-broken-canary
+cd tools/e2e && ./e3-canary-gate.sh   # canary rollout of <GOOD_TAG>-broken-canary
 ./e1-rollback-reliability.sh                  # repeated broken-image cycles
 ```
 

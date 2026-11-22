@@ -21,7 +21,7 @@ login
 
 NODE="${1:-$VM_NODE_1}"
 NAME="${2:-$VM_NAME_1}"
-REF=192.168.122.1:5001/os/edge-base
+REF=$IMAGE_REPO
 GOOD_DIGEST=$(zot_digest "$GOOD_TAG")
 ALT_DIGEST=$(alt_image)
 [ "$(node_booted_digest "$NODE")" = "$GOOD_DIGEST" ] || fail "precondition: $NODE must run $GOOD_TAG"
@@ -32,7 +32,7 @@ IP=$(vm_run "$NAME" 'hostname -I' 2>/dev/null | grep -oE '192\.168\.123\.[0-9]+'
 [ -n "$IP" ] || fail "no address for $NAME"
 
 cp_block() {
-  $HOST_SSH "sudo nft insert rule ip libvirt_network guest_output iif \"virbr-c12s\" ip saddr $IP ip daddr 192.168.122.1 tcp dport 4222 counter drop comment \"c12s-cpdown\"" \
+  $HOST_SSH "sudo nft insert rule ip libvirt_network guest_output iif \"virbr-c12s\" ip saddr $IP ip daddr $CP_HOST tcp dport 4222 counter drop comment \"c12s-cpdown\"" \
     || fail "could not block the CP for $NAME"
   log "NATS blocked for $NAME ($IP)"
 }

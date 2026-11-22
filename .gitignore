@@ -27,5 +27,5 @@ bootc/starometry
 # clone, start.sh seeds an empty file before compose). Never commit.
 vault/api_key.json
 
-# measured experiment output (written by experiments/*.sh)
-experiments/results/
+# measured test output (written by e2e/*.sh)
+e2e/results/

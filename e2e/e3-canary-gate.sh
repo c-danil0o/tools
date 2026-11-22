@@ -19,7 +19,7 @@ login
 CANARY="${1:-$VM_NODE_1}"
 PROD="${2:-$VM_NODE_2}"
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
-REGISTRY_REF=192.168.122.1:5001/os/edge-base
+REGISTRY_REF=$IMAGE_REPO
 
 BROKEN_TAG="$GOOD_TAG-broken-canary"
 BROKEN_DIGEST=$(build_image "$BROKEN_TAG" "$BROKEN_TAG" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG")

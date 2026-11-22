@@ -31,7 +31,7 @@ record e4-drift "node,drift_image,detected_s,reconciled_s,result"
 log "drift: out-of-band bootc switch on $NAME to $DRIFT_TAG"
 
 T0=$(date +%s)
-vm_run "$NAME" "sudo bootc switch 192.168.122.1:5001/os/edge-base:$DRIFT_TAG 2>&1 | tail -1; sudo systemctl reboot" >/dev/null 2>&1 || true
+vm_run "$NAME" "sudo bootc switch $IMAGE_REPO:$DRIFT_TAG 2>&1 | tail -1; sudo systemctl reboot" >/dev/null 2>&1 || true
 
 # capture the drift detection: phase leaves healthy once the poller notices
 DETECTED=""

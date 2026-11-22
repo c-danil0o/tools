@@ -21,7 +21,7 @@ login
 
 NODE="${1:-$VM_NODE_2}"
 NAME="${2:-$VM_NAME_2}"
-REF=192.168.122.1:5001/os/edge-base
+REF=$IMAGE_REPO
 GOOD_DIGEST=$(zot_digest "$GOOD_TAG")
 ALT_DIGEST=$(alt_image)
 [ "$(node_booted_digest "$NODE")" = "$GOOD_DIGEST" ] || fail "precondition: $NODE must run $GOOD_TAG"

@@ -22,7 +22,7 @@ login
 
 CANARY="${1:-$VM_NODE_1}"
 TARGET="${2:-$VM_NODE_2}"
-REF=192.168.122.1:5001/os/edge-base
+REF=$IMAGE_REPO
 GOOD_DIGEST="${GOOD_DIGEST:-$(zot_digest "$GOOD_TAG")}"
 [ -n "$GOOD_DIGEST" ] || fail "no digest for $GOOD_TAG"
 [ "$(node_booted_digest "$CANARY")" = "$GOOD_DIGEST" ] || fail "precondition: $CANARY must run $GOOD_TAG"

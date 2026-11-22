@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # E5 — air-gapped update.
 #
-# Guest egress on the libvirt host is blocked except to 192.168.122.1 (the CP
+# Guest egress on the libvirt host is blocked except to $CP_HOST (the CP
 # / Zot / artifact server), then the node is updated. Success proves the
 # update used Singularity as the only image source; an external TCP probe
 # proves the block is real while the update runs.
@@ -33,7 +33,7 @@ if [ "$CURRENT" = "$TARGET_DIGEST" ]; then
 fi
 
 T0=$(date +%s)
-image_update "$NODE" "192.168.122.1:5001/os/edge-base:$TARGET_TAG" "$TARGET_DIGEST" >/dev/null || fail "update command failed"
+image_update "$NODE" "$IMAGE_REPO:$TARGET_TAG" "$TARGET_DIGEST" >/dev/null || fail "update command failed"
 T_ACCEPTED=$(( $(date +%s) - T0 ))
 
 if ELAPSED=$(wait_for_digest "$NODE" "$TARGET_DIGEST" 600); then

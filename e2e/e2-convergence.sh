@@ -28,7 +28,7 @@ for i in $(seq 1 "$VM_COUNT"); do
     record e2-convergence "$id,$old,$(( $(date +%s) - T0 )),0,already"
     continue
   fi
-  image_update "$id" "192.168.122.1:5001/os/edge-base:$TARGET_TAG" "$TARGET_DIGEST" >/dev/null || fail "update failed for $id"
+  image_update "$id" "$IMAGE_REPO:$TARGET_TAG" "$TARGET_DIGEST" >/dev/null || fail "update failed for $id"
   SENT[$id]=$(( $(date +%s) - T0 ))
   log "update sent to $id at +${SENT[$id]}s"
 done

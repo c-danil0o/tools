@@ -2,7 +2,7 @@
 
 Everything about *running* c12s on one machine lives here: the Docker
 Compose control plane, start/stop scripts, the node OS image artifacts
-(`bootc/`), end-to-end test scripts for OS updates (`experiments/`), and the
+(`bootc/`), end-to-end test scripts for OS updates (`e2e/`), and the
 operator/API reference (`docs/README.md`). No service code lives in
 this repository; the build contexts are the sibling repos of the workspace.
 
@@ -13,7 +13,7 @@ this repository; the build contexts are the sibling repos of the workspace.
 | `docker-compose.yml` | the full local stack: control plane + registry/artifacts + build service + metrics |
 | `start.sh` / `stop.sh` | idempotent bring-up / shutdown (schema, vault, test user, image re-seeding) |
 | `image-cache.sh` | `save`/`load`/`list` built OS images (digest-preserving OCI archives via skopeo) and qcow2 disks to/from `~/.c12s/image-cache`, so a wiped or new control plane gets them back without rebuilding |
-| `experiments/` | end-to-end test scripts for OS updates and VM hosts |
+| `e2e/` | end-to-end test scripts for OS updates and VM hosts (`e2e/README.md`) |
 | `bootc/` | Containerfiles + greenboot checks that go **into** the node OS image |
 | `docs/README.md` | API/CLI reference |
 | `vault/`, `scylla/`, `grafana/` | local infra images/config for the stack |
@@ -127,21 +127,9 @@ restarts the whole stack automatically. Consequences:
 
 ### End-to-end tests
 
-The scripts in `experiments/` need a running stack and a libvirt VM host
-(see wormhole):
-
-```bash
-cd experiments
-./setup-fleet.sh 2          # build the test image, claim the VM host,
-                            # create 2 VMs on it, wait for enrollment/health
-./e1-rollback-reliability.sh ... ./e8-declarative-apply.sh
-```
-
-They cover automatic rollback, convergence, canary rollout, drift
-reconciliation, offline catch-up, recorded intent, boots with the control
-plane unreachable, and fleet-spec apply. Helpers in `common.sh` drive
-Supernova and cockpit; results are written to `experiments/results/`
-(git-ignored). The node image is documented in `bootc/README.md`.
+`e2e/` holds scripts that test OS updates end to end (rollback, canary,
+drift, offline nodes, fleet apply) on a libvirt VM host. Requirements, usage
+and configuration: `e2e/README.md`.
 
 ### Dockerized "simulated" nodes
 

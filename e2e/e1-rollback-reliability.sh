@@ -27,7 +27,7 @@ for i in $(seq 1 "$CYCLES"); do
   BROKEN_DIGEST=$(build_image "$BROKEN_TAG" "$BROKEN_TAG" Containerfile.broken "localhost:5001/os/edge-base:$GOOD_TAG")
   log "cycle $i/$CYCLES: offering $BROKEN_TAG ($BROKEN_DIGEST)"
 
-  image_update "$NODE" "192.168.122.1:5001/os/edge-base:$BROKEN_TAG" "$BROKEN_DIGEST" >/dev/null || fail "cycle $i: update failed"
+  image_update "$NODE" "$IMAGE_REPO:$BROKEN_TAG" "$BROKEN_DIGEST" >/dev/null || fail "cycle $i: update failed"
   T0=$(date +%s)
 
   if RB=$(wait_for_phase "$NODE" rolled_back 1500 3); then
@@ -38,7 +38,7 @@ for i in $(seq 1 "$CYCLES"); do
     fail "cycle $i: no rolled_back within ${RB}s"
   fi
 
-  image_update "$NODE" "192.168.122.1:5001/os/edge-base:$GOOD_TAG" "$GOOD_DIGEST" >/dev/null || fail "cycle $i: restore failed"
+  image_update "$NODE" "$IMAGE_REPO:$GOOD_TAG" "$GOOD_DIGEST" >/dev/null || fail "cycle $i: restore failed"
   if RS=$(wait_for_digest "$NODE" "$GOOD_DIGEST" 1500); then
     log "cycle $i: restored to $GOOD_TAG at +${RS}s"
     RESTORE_TIMES+=("$RS")

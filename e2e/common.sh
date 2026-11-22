@@ -3,7 +3,8 @@
 #
 # Environment (all overridable):
 #   GATEWAY, C12S_USER/PASS/ORG, ETCD_CONTAINER, ZOT, SINGULARITY_FILES,
-#   HOST_VM_IP, HOST_ID (libvirt host node), COCKPIT_BIN, RESULTS_DIR.
+#   HOST_VM_IP, HOST_ID (libvirt host node), CP_HOST, REGISTRY, DISK_REGISTRY,
+#   IMAGE_REPO, GOOD_TAG, FLEET_QCOW2, COCKPIT_BIN, RESULTS_DIR.
 #
 # The scripts drive the control plane through cockpit, observe node state by
 # decoding the etcd node records (protoc), and reach nested VMs through the
@@ -17,7 +18,7 @@ TOOLS_DIR="$(dirname "$EXPERIMENTS_DIR")"
 REPO_ROOT="$(dirname "$TOOLS_DIR")"
 COCKPIT_DIR="$REPO_ROOT/cockpit"
 RESULTS_DIR="${RESULTS_DIR:-$EXPERIMENTS_DIR/results}"
-TMP_DIR="${TMP_DIR:-${TMPDIR:-/tmp}/c12s-experiments}"
+TMP_DIR="${TMP_DIR:-${TMPDIR:-/tmp}/c12s-e2e}"
 
 GATEWAY="${GATEWAY:-http://localhost:5555}"
 C12S_USER="${C12S_USER:-e2e}"
@@ -27,6 +28,10 @@ ETCD_CONTAINER="${ETCD_CONTAINER:-etcd}"
 ZOT="${ZOT:-localhost:5001}"
 SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
 HOST_VM_IP="${HOST_VM_IP:-192.168.122.61}"   # VM host (first VM of wormhole config.libvirt.yaml)
+CP_HOST="${CP_HOST:-192.168.122.1}"          # control-plane host as the nodes reach it
+REGISTRY="${REGISTRY:-$CP_HOST:5001}"        # OS image registry, node-visible
+DISK_REGISTRY="${DISK_REGISTRY:-http://$CP_HOST:8081}"  # qcow2 artifact server, node-visible
+IMAGE_REPO="${IMAGE_REPO:-$REGISTRY/os/edge-base}"
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
 FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v4.0.qcow2}"
 GOOD_TAG="${GOOD_TAG:-v4.1}"
@@ -291,7 +296,7 @@ fleet_set() { # <vm-count>
   [ -n "$HOST_ID" ] || fail "HOST_ID unknown: libvirt host $HOST_VM_IP unreachable or not enrolled (set HOST_ID to override)"
   digest=$(curl -sf "$SINGULARITY_FILES/artifacts/$FLEET_QCOW2/sha256") || fail "fleet qcow2 $FLEET_QCOW2 not on the artifact server"
   for i in $(seq 1 "$n"); do
-    vms+="{\"name\":\"vm-0$i\",\"qcow2Url\":\"http://192.168.122.1:8081/artifacts/$FLEET_QCOW2\",\"digest\":\"$digest\",\"vcpus\":1,\"memoryMb\":1024},"
+    vms+="{\"name\":\"vm-0$i\",\"qcow2Url\":\"$DISK_REGISTRY/artifacts/$FLEET_QCOW2\",\"digest\":\"$digest\",\"vcpus\":1,\"memoryMb\":1024},"
   done
   spec="{\"vms\":[${vms%,}]}"
   cockpit_retry vms set --host "$HOST_ID" --spec "$spec" >/dev/null || fail "vms set failed"
@@ -336,7 +341,7 @@ fleet_pin() {
   local n=${1:-2} digest=$2 i id
   for i in $(seq 1 "$n"); do
     id=$(eval echo \$VM_NODE_$i)
-    image_update "$id" "192.168.122.1:5001/os/edge-base:$GOOD_TAG" "$digest" >/dev/null || fail "pinning $id to $GOOD_TAG failed"
+    image_update "$id" "$IMAGE_REPO:$GOOD_TAG" "$digest" >/dev/null || fail "pinning $id to $GOOD_TAG failed"
     wait_for_digest "$id" "$digest" 600 >/dev/null || fail "node $id not healthy on $GOOD_TAG"
   done
   log "fleet pinned to $GOOD_TAG"
@@ -374,8 +379,8 @@ record() { # <file> <line>
 
 # The libvirt host blocks guest egress except to the control plane (E5).
 airgap_on() {
-  $HOST_SSH 'sudo nft insert rule ip libvirt_network guest_output iif \"virbr-c12s\" ip daddr != 192.168.122.1 counter drop comment \"c12s-airgap\"' || fail "could not enable air gap"
-  log "air gap enabled on $(hostname 2>/dev/null || echo host): guest egress -> only 192.168.122.1"
+  $HOST_SSH "sudo nft insert rule ip libvirt_network guest_output iif \\\"virbr-c12s\\\" ip daddr != $CP_HOST counter drop comment \\\"c12s-airgap\\\"" || fail "could not enable air gap"
+  log "air gap enabled on $(hostname 2>/dev/null || echo host): guest egress -> only $CP_HOST"
 }
 
 airgap_off() {
