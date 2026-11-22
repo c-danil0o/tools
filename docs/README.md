@@ -2263,7 +2263,7 @@ the reference client (`cockpit image …`, `cockpit vms …`).
 
 | Method + route | gRPC | Body | Permission |
 |---|---|---|---|
-| `POST /images/update` | Gravity `DisseminateOSImage` | `{"node_id","image_ref","digest","reboot_policy":"immediate"}` (digest `sha256:<64 hex>`; ref without a digest; a short ref like `os/edge-base:v4.1` is completed by the node) | `os.update` on the node or on its org |
+| `POST /images/update` | Gravity `DisseminateOSImage` | `{"node_id","image_ref","digest","reboot_policy":"immediate"}` (digest `sha256:<64 hex>`; ref without a digest; a short ref like `os/edge-base:v1.1` is completed by the node) | `os.update` on the node or on its org |
 | `GET /images` | Supernova `ListImages` | `{}` | token |
 | `POST /builds` | Supernova `BuildImage` | `{"spec":{"name","tag","containerfile","registry","buildArgs":{}},"context":"<base64 tar.gz>"}` | `image.build\|image\|<name>` |
 | `POST /builds/qcow2` | Supernova `BuildQCOW2` | `{"name","imageRef","targetArch","rootfs"}` | `image.build\|image\|<name>` |

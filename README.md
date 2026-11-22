@@ -1,21 +1,21 @@
-# tools — c12s lab orchestration
+# tools — c12s local orchestration
 
 Everything about *running* c12s on one machine lives here: the Docker
 Compose control plane, start/stop scripts, the node OS image artifacts
-(`bootc/`), the bootc fleet + update experiments (`experiments/`), and the
-corrected operator/API reference (`docs/README.md`). No service code lives in
+(`bootc/`), end-to-end test scripts for OS updates (`experiments/`), and the
+operator/API reference (`docs/README.md`). No service code lives in
 this repository; the build contexts are the sibling repos of the workspace.
 
 ## Role in c12s
 
 | Part | Serves |
 |---|---|
-| `docker-compose.yml` | the full lab stack: control plane + registry/artifacts + build service + metrics |
+| `docker-compose.yml` | the full local stack: control plane + registry/artifacts + build service + metrics |
 | `start.sh` / `stop.sh` | idempotent bring-up / shutdown (schema, vault, test user, image re-seeding) |
 | `image-cache.sh` | `save`/`load`/`list` built OS images (digest-preserving OCI archives via skopeo) and qcow2 disks to/from `~/.c12s/image-cache`, so a wiped or new control plane gets them back without rebuilding |
-| `experiments/` | `setup-fleet.sh` and E1–E8 thesis experiments (see `plan/`) |
+| `experiments/` | end-to-end test scripts for OS updates and VM hosts |
 | `bootc/` | Containerfiles + greenboot checks that go **into** the node OS image |
-| `docs/README.md` | corrected API/CLI reference (the old docs were wrong in places) |
+| `docs/README.md` | API/CLI reference |
 | `vault/`, `scylla/`, `grafana/` | local infra images/config for the stack |
 
 Compose service → source repo (build context is the workspace root):
@@ -38,7 +38,7 @@ Compose service → source repo (build context is the workspace root):
 ```bash
 cd tools
 
-bash install.sh     # first time: clones missing repos (see bugs — stale list)
+bash install.sh     # first time: clones missing repos
 ./start.sh          # control plane; idempotent, safe on old volumes
 ./stop.sh           # stop, keep state (volumes)
 ./stop.sh --clean   # also wipe volumes + dockerized node ids (fresh start)
@@ -53,9 +53,9 @@ bash install.sh     # first time: clones missing repos (see bugs — stale list)
    `e2e` / `testpass123` / org `c12s`, overridable via `C12S_USER`, `C12S_PASS`,
    `C12S_ORG`;
 5. re-seed the provisioning disks (`~/.wormhole/images/edge-base-*.qcow2`,
-   overridable via `QCOW2_DIR`) into the artifact server and local
-   `edge-base` tags into the registry if a previous `stop.sh --clean` wiped
-   them;
+   overridable via `QCOW2_DIR`) into the artifact server if a previous
+   `stop.sh --clean` wiped them (OS image tags come back with
+   `./image-cache.sh load`);
 6. start Grafana (`localhost:3000`) and, if `NODES_NUM > 0`, N dockerized
    star/starometry node pairs.
 
@@ -96,7 +96,7 @@ they still expect the environment variables described in the service READMEs.
 ### Lifecycle and reboot behavior
 
 `docker compose` is a CLI, not a daemon: after `up -d` returns, Docker owns
-the containers. There is deliberately **no systemd unit** for the lab stack;
+the containers. There is deliberately **no systemd unit** for the stack;
 boot recovery relies on Docker's per-container restart policy.
 
 Every long-running service in `docker-compose.yml` uses
@@ -125,21 +125,23 @@ restarts the whole stack automatically. Consequences:
 > match, the stack cannot unseal Vault. Restore the `api_key.json` written
 > when the volume was initialized, or start over with `./stop.sh --clean`.
 
-### Lab fleet and experiments
+### End-to-end tests
+
+The scripts in `experiments/` need a running stack and a libvirt VM host
+(see wormhole):
 
 ```bash
 cd experiments
-./setup-fleet.sh 2          # build the good image, claim the VM host node-1,
-                            # create 2 VMs on it, wait for enrollment/health,
-                            # pin the good image
+./setup-fleet.sh 2          # build the test image, claim the VM host,
+                            # create 2 VMs on it, wait for enrollment/health
 ./e1-rollback-reliability.sh ... ./e8-declarative-apply.sh
 ```
 
-Helpers in `common.sh` (`build_image`, `broken_image`, `alt_image`,
-`fleet_*`, `vm_run`, `cockpit_retry`, ...) drive Supernova + cockpit;
-results land in `experiments/results/*.csv`. The bootc image itself is
-documented in `bootc/README.md` (greenboot gates, rollback mechanics,
-Containerfiles). Fleet layout and handoff state: `../plan/handoff-phase5.md`.
+They cover automatic rollback, convergence, canary rollout, drift
+reconciliation, offline catch-up, recorded intent, boots with the control
+plane unreachable, and fleet-spec apply. Helpers in `common.sh` drive
+Supernova and cockpit; results are written to `experiments/results/`
+(git-ignored). The node image is documented in `bootc/README.md`.
 
 ### Dockerized "simulated" nodes
 
@@ -157,12 +159,12 @@ matter most day-to-day:
 |---|---|---|
 | `NODES_NUM` | `0` | dockerized star nodes to start |
 | `C12S_NO_BUILD` | `0` | `1` skips image builds in `start.sh` (same as `--no-build`; `--build` overrides) |
-| `SINGULARITY_PORT` / `SINGULARITY_HOST_PORT` | `5000` / `5001` | registry inside/outside compose (nodes see `192.168.122.1:5001`) |
+| `SINGULARITY_PORT` / `SINGULARITY_HOST_PORT` | `5000` / `5001` | registry inside/outside compose (nodes use the host's address, see `bootc/node.env`) |
 | `SINGULARITY_FILES_PORT` / `..._HOST_PORT` | `8080` / `8081` | artifact server inside/outside |
 | `SUPERNOVA_PORT` / `SUPERNOVA_HOST_PORT` | `8090` | build service (bound to `127.0.0.1` only) |
 | `SUPERNOVA_ENGINE_REGISTRY` | `localhost:5001` | registry address the push reaches (compose: `singularity:5000`) |
 | `NATS_ADDRESS` | `nats:4222` | broker address given to in-network services |
-| `SECRET_KEY` | `secret-key` | shared JWT signing key (lab value) |
+| `SECRET_KEY` | `secret-key` | shared JWT signing key (development value — change it) |
 | `BIND_PORT` | `7946` | Serf/gossip port baked into images and docker nodes |
 | `NODE_STALE_AFTER` / `NODE_OFFLINE_AFTER` | `90s` / `5m` | node liveness thresholds (Magnetar derives `online`/`stale`/`offline` from the last heartbeat) |
 | `NODE_GC_ENABLED` | `true` | Magnetar's stale-record GC |
@@ -177,55 +179,3 @@ baked into the node image's environment and read by star). A node that
 heartbeats successfully shows up as `online` in `cockpit list nodes`; a node
 whose record Magnetar lost (e.g. `stop.sh --clean`) learns this from the
 heartbeat reply and re-registers with the same id.
-
-## Status
-
-The supported entry point for the whole lab: `start.sh`/`stop.sh`,
-`experiments/` and `bootc/` are maintained; the alternative stacks listed
-below are not.
-
-## Bugs, disabled and unfinished features
-
-### Confirmed bugs / footguns
-
-| Where | Effect |
-|---|---|
-| `install.sh` | Clones the upstream default branches; until the thesis PRs are merged they lack the OS-management work (check out the feature branches by hand). |
-| `control_plane.yml` + `control_plane_start.sh`/`control_plane_stop.sh` | **Legacy, divergent second stack**: `docker compose` (no `-f`) uses `docker-compose.yml`, but running the old scripts starts a CP-only stack without singularity/supernova and different env plumbing. Two configs drift — always use `start.sh`/`stop.sh`. |
-| `node.yml` + `node_start.sh`/`node_stop.sh`, `start-windows.sh`, `control_plane.env`, `node.env`, `windows.env` | Superseded scaffolding: three different node/start mechanisms exist; only `start.sh`'s `NODES_NUM` path is maintained. |
-| Gateway rate limiter defaults | Every authenticated API call passes the per-`method`+`user` limiter; absent a configured limiter one is auto-created with `RL_DEFAULT_REQ_PER_SEC`/`RL_DEFAULT_BURST` (`.env`: 10 req/s, burst 20; the service's own default is 1/1). Limiters are stored in Consul, so ones created under an older default keep it: `docker exec tools-consul-1 consul kv delete -recurse rateLimiters/ && docker restart rate_limiter_service`. |
-| `docker run`'d Grafana | Started outside Compose by `start.sh` on the compose network; `stop.sh` forcibly `docker rm -f`s **any** container named `grafana`/`tardis-grafana` on the machine. |
-
-### Disabled / unfinished features
-
-- **No test suite for the orchestration scripts** — they are exercised only by
-  lab runs; correctness feedback comes from `start.sh`'s own waits/failures.
-- **`start.sh` re-seeds only the provisioning disk** (from
-  `~/.wormhole/images`); OS image tags come back with
-  `./image-cache.sh load` (or are rebuilt).
-- `supernova` is bound to `127.0.0.1` deliberately (review S3) — a remote
-  build host is not supported by this stack layout.
-- Metrics Grafana wiring is convenience-grade: dashboards/datasources are
-  provisioned from `grafana/`, but nothing is versioned per lab session, and
-  the health-check Prometheus (`prometheus_healthcheck`) is a separate,
-  pre-existing helper.
-- Windows/macOS paths (`start-windows.sh`, `windows.env`) are unmaintained;
-  the bootc lab is Linux-only (libvirt, KVM, podman).
-
-### PoC boundaries (by design, not bugs)
-
-- **No systemd unit for the lab stack** (deliberate): `docker compose` is only
-  a CLI, so after a host reboot Docker restores containers from their
-  `restart:` policies. There is no supervised `compose up`; use
-  `./start.sh --no-build` when the out-of-band steps (schema, Vault, test
-  user, seeds) need re-running.
-- Plaintext everything inside the compose network (NATS, etcd, Vault HTTP,
-  gRPC, webhooks); lab credentials are in-tree (`SECRET_KEY`, test user).
-- The compose files hardcode per-service static IPs (`10.5.0.x`) — one lab
-  stack per Docker host.
-- `vault/api_key.json` is gitignored: protect it together with the
-  `tools_vault_data` volume.
-
-References: `../plan/architecture.md` (as-built), `../plan/handoff-phase5.md`
-(lab state), `../plan/review.md` (S1/S3, rate limits), `docs/README.md`
-(corrected API reference).
