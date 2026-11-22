@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run a shell command inside a libvirt VM through its serial console.
 
-Used by the Phase 5 experiment scripts: the nested VM fleet has no SSH keys
+Used by the end-to-end test scripts: the nested VM fleet has no SSH keys
 injected (the Star reconciler seed only carries node.env), but the console
 auto-logs-in with the NoCloud debug user c12s/c12s.
 

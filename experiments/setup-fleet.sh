@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# setup-fleet.sh [vm-count] — Phase 5 precondition.
+# setup-fleet.sh [vm-count] — precondition for the E1–E8 tests.
 #
 # Builds the "good" experiment image (edge-base $GOOD_TAG), declares N bootc
-# VMs on the Phase 4 libvirt host, waits for them to enroll and become healthy, grants os.update for the experiment user, and
+# VMs on the libvirt VM host, waits for them to enroll and become healthy, grants os.update for the experiment user, and
 # saves the node map to results/fleet.env.
 
 set -uo pipefail

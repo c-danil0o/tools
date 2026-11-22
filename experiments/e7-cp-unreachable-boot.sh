@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# E7 — health gate with the control plane unreachable (plan/review.md R14).
+# E7 — health gate with the control plane unreachable.
 #
 # The node loses its path to NATS (firewall rule on the libvirt host), the
-# rest of the lab keeps running.
+# rest of the stack keeps running.
 # T1 plain reboot: one boot, greenboot passes with a warning (not an update
 #    boot), grubenv stays clean, star keeps running without restarts.
 # T2 update boot: the update is delivered, then the CP becomes unreachable.
@@ -10,8 +10,8 @@
 #    back, the fallback boot passes; the node reports rolled_back once the CP
 #    is reachable again.
 #
-# Precondition: the node runs $GOOD_TAG (with the R14 check and reconnecting
-# NATS clients). E7_TESTS selects tests (default "T1 T2").
+# Precondition: the node runs $GOOD_TAG (with the update-boot-only CP check
+# and reconnecting NATS clients). E7_TESTS selects tests (default "T1 T2").
 
 set -uo pipefail
 source "$(dirname "$0")/common.sh"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# common.sh — shared helpers for the Phase 5 experiments (plan/phase-next.md §3).
+# common.sh — shared helpers for the end-to-end OS-update tests.
 #
 # Environment (all overridable):
 #   GATEWAY, C12S_USER/PASS/ORG, ETCD_CONTAINER, ZOT, SINGULARITY_FILES,
@@ -17,7 +17,7 @@ TOOLS_DIR="$(dirname "$EXPERIMENTS_DIR")"
 REPO_ROOT="$(dirname "$TOOLS_DIR")"
 COCKPIT_DIR="$REPO_ROOT/cockpit"
 RESULTS_DIR="${RESULTS_DIR:-$EXPERIMENTS_DIR/results}"
-TMP_DIR="${TMP_DIR:-/tmp/opencode/c12s-experiments}"
+TMP_DIR="${TMP_DIR:-${TMPDIR:-/tmp}/c12s-experiments}"
 
 GATEWAY="${GATEWAY:-http://localhost:5555}"
 C12S_USER="${C12S_USER:-e2e}"
@@ -26,7 +26,7 @@ C12S_ORG="${C12S_ORG:-c12s}"
 ETCD_CONTAINER="${ETCD_CONTAINER:-etcd}"
 ZOT="${ZOT:-localhost:5001}"
 SINGULARITY_FILES="${SINGULARITY_FILES:-http://localhost:8081}"
-HOST_VM_IP="${HOST_VM_IP:-192.168.122.61}"   # VM host = node-1 (wormhole config.libvirt.yaml)
+HOST_VM_IP="${HOST_VM_IP:-192.168.122.61}"   # VM host (first VM of wormhole config.libvirt.yaml)
 COCKPIT_BIN="${COCKPIT_BIN:-$HOME/.cache/c12s/cockpit}"
 FLEET_QCOW2="${FLEET_QCOW2:-edge-base-v4.0.qcow2}"
 GOOD_TAG="${GOOD_TAG:-v4.1}"
@@ -131,7 +131,7 @@ node_booted_digest() {
   node_decode "$1" | awk '/bootedDigest:/{gsub(/"/,"",$2); print $2; exit}'
 }
 
-node_desired_digest() { # declared in Magnetar (DEV-14); empty = none
+node_desired_digest() { # declared in Magnetar; empty = none
   docker exec "$ETCD_CONTAINER" etcdctl get "desired_os/$1" --print-value-only 2>/dev/null \
     | grep -o '"Digest":"[^"]*"' | cut -d'"' -f4
 }
@@ -277,7 +277,7 @@ EOF
 }
 
 # fleet_claim: move every node in the pool into the experiment org (the
-# libvirt host and its VMs enroll unclaimed; a clean lab has no other nodes)
+# libvirt host and its VMs enroll unclaimed; assumes no other pool nodes)
 fleet_claim() {
   if [ -z "$(docker exec "$ETCD_CONTAINER" etcdctl get nodes/pool --prefix --keys-only 2>/dev/null | grep -v '^$')" ]; then
     return 0

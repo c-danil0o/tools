@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E3 — canary rollout with a health gate (plan/phase-next.md §3.1).
+# E3 — canary rollout with a health gate.
 #
 # Drives `cockpit image rollout`, the platform's canary-gated rollout:
 #   1. roll a deliberately broken image out with CANARY first and PROD as

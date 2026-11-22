@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E8 — declarative apply (HostImageSpec fleet spec) in the lab.
+# E8 — declarative apply (HostImageSpec fleet spec).
 #
 # Drives `cockpit image apply --spec`: the spec names nodes by id and says
 # which image each runs; apply updates only the listed nodes, canary first.

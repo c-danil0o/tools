@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E5 — air-gapped update (plan/phase-next.md §3.1).
+# E5 — air-gapped update.
 #
 # Guest egress on the libvirt host is blocked except to 192.168.122.1 (the CP
 # / Zot / artifact server), then the node is updated. Success proves the

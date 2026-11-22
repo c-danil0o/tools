@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E1 — rollback reliability (plan/phase-next.md §3.1).
+# E1 — rollback reliability.
 #
 # Repeat N times: offer a distinct broken image (unique digest, because the
 # node's loop guard never retries a known-bad digest), let greenboot roll it

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E4 — drift detection and reconciliation (plan/phase-next.md §3.1).
+# E4 — drift detection and reconciliation.
 #
 # Precondition: the node is healthy on the good image and the good image is
 # not its immediate previous deployment. The node is then changed out of band

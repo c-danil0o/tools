@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# E6 — recorded OS intent (plan/deviations.md DEV-14).
+# E6 — recorded OS intent: the desired image lives in Magnetar, not only in
+# the NATS push.
 #
 # T1 offline catch-up: with star stopped, an update is not acknowledged but
 #    recorded in Magnetar; the node does not change while offline and

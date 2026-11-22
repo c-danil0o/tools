@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E2 — convergence time (plan/phase-next.md §3.1).
+# E2 — convergence time.
 #
 # Declare the good image on all fleet nodes as simultaneously as the control
 # plane allows (sequential cockpit calls; the user rate limiter spaces them),
